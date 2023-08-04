@@ -8,9 +8,9 @@ environment:
 
 dependencies:
   ffi: ^2.0.2
-  path: ^1.8.3
   win32: ^5.0.6
-  resource_portable: ^3.1.0
+  #path: ^1.8.3
+  #resource_portable: ^3.1.0
 
 dev_dependencies:
   lints: ^2.1.1
