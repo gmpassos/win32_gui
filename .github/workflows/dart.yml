@@ -28,7 +28,7 @@ jobs:
       - name: Run tests (VM)
         run: dart test --platform vm
       - name: Run tests (exe)
-        run: dart test --compiler exe vm
+        run: dart test --compiler exe
       - name: Generate coverage report
         run: |
           dart pub global activate coverage
