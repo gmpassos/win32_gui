@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-class Win32Constants {
+abstract class Win32Constants {
   static final Map<int, String> wmByID = UnmodifiableMapView({
     0x0000: 'WM_NULL',
     0x0001: 'WM_CREATE',
@@ -161,8 +161,29 @@ class Win32Constants {
     0x0311: 'WM_PALETTECHANGED',
     0x0312: 'WM_HOTKEY',
     0x0400: 'WM_USER',
+    0x40000000: 'CFM_COLOR',
+    0x0004: 'SCF_ALL',
   });
 
-  static final Map<String, int> wmByName = UnmodifiableMapView(
-      Map.fromEntries(wmByID.entries.map((e) => MapEntry(e.value, e.key))));
+  static final Map<String, int> _wmByNameExtra = UnmodifiableMapView({
+    'SCF_DEFAULT': 0x0000,
+    'SCF_SELECTION': 0x1,
+    'WM_USER': 1024,
+    'EM_SETBKGNDCOLOR': 1024 + 67,
+    'EM_AUTOURLDETECT': 1024 + 91,
+    'EM_GETCHARFORMAT': 1024 + 58,
+    'EM_SETCHARFORMAT': 1024 + 68,
+  });
+
+  static final Map<String, int> wmByName = UnmodifiableMapView({
+    ...Map.fromEntries(wmByID.entries.map((e) => MapEntry(e.value, e.key))),
+    ..._wmByNameExtra,
+  });
+
+  static String buildConstants() =>
+      wmByName.entries.map((e) => 'const ${e.key} = ${e.value};\n').join();
+}
+
+void main() {
+  print(Win32Constants.buildConstants());
 }

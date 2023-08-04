@@ -4,6 +4,7 @@ import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
 import 'win32_gui_base.dart';
+import 'win32_constants_extra.dart';
 
 class RichEdit extends Window {
   static final int richEditLoadedVersion = WindowClass.loadRichEditLibrary();
@@ -19,17 +20,6 @@ class RichEdit extends Window {
   static final textOutputWindowClassRich1 = WindowClass.predefined(
     className: 'RichEdit',
   );
-
-  static final int WM_USER = 1024;
-  static final int EM_SETBKGNDCOLOR = WM_USER + 67;
-  static final int EM_AUTOURLDETECT = WM_USER + 91;
-  static final int EM_GETCHARFORMAT = WM_USER + 58;
-  static final int EM_SETCHARFORMAT = WM_USER + 68;
-  static final int CFM_COLOR = 0x40000000;
-
-  static const int SCF_DEFAULT = 0x0000;
-  static const int SCF_ALL = 0x0004;
-  static const int SCF_SELECTION = 0x1;
 
   RichEdit({super.parentHwnd})
       : super(

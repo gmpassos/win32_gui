@@ -58,11 +58,11 @@ class WindowClass {
 
   WindowClass.custom(
       {required this.className,
-        required this.windowProc,
-        this.isFrame = true,
-        this.bgColor,
-        this.useDarkMode = false,
-        this.titleColor})
+      required this.windowProc,
+      this.isFrame = true,
+      this.bgColor,
+      this.useDarkMode = false,
+      this.titleColor})
       : custom = true;
 
   WindowClass.predefined({required this.className, this.bgColor})
@@ -260,14 +260,14 @@ class Window {
 
   Window(
       {required this.windowClass,
-        this.windowName,
-        this.windowStyles = 0,
-        this.x,
-        this.y,
-        this.width,
-        this.height,
-        this.bgColor,
-        this.parentHwnd}) {
+      this.windowName,
+      this.windowStyles = 0,
+      this.x,
+      this.y,
+      this.width,
+      this.height,
+      this.bgColor,
+      this.parentHwnd}) {
     windowClass.register();
 
     var hwnd = create();
@@ -287,7 +287,7 @@ class Window {
 
   int create() {
     final hwnd = CreateWindowEx(
-      // Optional window styles:
+        // Optional window styles:
         0,
 
         // Window class:
