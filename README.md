@@ -1,14 +1,14 @@
-# win32_ui
+# win32_gui
 
-[![pub package](https://img.shields.io/pub/v/win32_ui.svg?logo=dart&logoColor=00b9fc)](https://pub.dartlang.org/packages/win32_ui)
+[![pub package](https://img.shields.io/pub/v/win32_gui.svg?logo=dart&logoColor=00b9fc)](https://pub.dartlang.org/packages/win32_gui)
 [![Null Safety](https://img.shields.io/badge/null-safety-brightgreen)](https://dart.dev/null-safety)
-[![Dart CI](https://github.com/gmpassos/win32_ui/actions/workflows/dart.yml/badge.svg?branch=master)](https://github.com/gmpassos/win32_ui/actions/workflows/dart.yml)
-[![GitHub Tag](https://img.shields.io/github/v/tag/gmpassos/win32_ui?logo=git&logoColor=white)](https://github.com/gmpassos/win32_ui/releases)
-[![New Commits](https://img.shields.io/github/commits-since/gmpassos/win32_ui/latest?logo=git&logoColor=white)](https://github.com/gmpassos/win32_ui/network)
-[![Last Commits](https://img.shields.io/github/last-commit/gmpassos/win32_ui?logo=git&logoColor=white)](https://github.com/gmpassos/win32_ui/commits/master)
-[![Pull Requests](https://img.shields.io/github/issues-pr/gmpassos/win32_ui?logo=github&logoColor=white)](https://github.com/gmpassos/win32_ui/pulls)
-[![Code size](https://img.shields.io/github/languages/code-size/gmpassos/win32_ui?logo=github&logoColor=white)](https://github.com/gmpassos/win32_ui)
-[![License](https://img.shields.io/github/license/gmpassos/win32_ui?logo=open-source-initiative&logoColor=green)](https://github.com/gmpassos/win32_ui/blob/master/LICENSE)
+[![Dart CI](https://github.com/gmpassos/win32_gui/actions/workflows/dart.yml/badge.svg?branch=master)](https://github.com/gmpassos/win32_gui/actions/workflows/dart.yml)
+[![GitHub Tag](https://img.shields.io/github/v/tag/gmpassos/win32_gui?logo=git&logoColor=white)](https://github.com/gmpassos/win32_gui/releases)
+[![New Commits](https://img.shields.io/github/commits-since/gmpassos/win32_gui/latest?logo=git&logoColor=white)](https://github.com/gmpassos/win32_gui/network)
+[![Last Commits](https://img.shields.io/github/last-commit/gmpassos/win32_gui?logo=git&logoColor=white)](https://github.com/gmpassos/win32_gui/commits/master)
+[![Pull Requests](https://img.shields.io/github/issues-pr/gmpassos/win32_gui?logo=github&logoColor=white)](https://github.com/gmpassos/win32_gui/pulls)
+[![Code size](https://img.shields.io/github/languages/code-size/gmpassos/win32_gui?logo=github&logoColor=white)](https://github.com/gmpassos/win32_gui)
+[![License](https://img.shields.io/github/license/gmpassos/win32_gui?logo=open-source-initiative&logoColor=green)](https://github.com/gmpassos/win32_gui/blob/master/LICENSE)
 
 Win32 API GUI in Object-Oriented style with some helpers. Uses package [win32] and [dart:ffi]. 
 
@@ -20,7 +20,7 @@ Win32 API GUI in Object-Oriented style with some helpers. Uses package [win32] a
 Here's a simple Hello World window:
 
 ```dart
-import 'package:win32_ui/win32_ui.dart';
+import 'package:win32_gui/win32_gui.dart';
 
 void main() {
   
