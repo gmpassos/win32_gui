@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:win32_gui/win32_gui.dart';
 
 Future<void> main() async {
@@ -52,10 +54,28 @@ class MainWindow extends Window {
     textOutput =
         TextOutput(parent: this, x: 4, y: 160, width: 626, height: 250);
 
-    buttonOK =
-        Button(label: 'OK', parent: this, x: 4, y: 414, width: 100, height: 32);
+    buttonOK = Button(
+        id: 1,
+        label: 'OK',
+        parent: this,
+        x: 4,
+        y: 414,
+        width: 100,
+        height: 32,
+        onCommand: (p) => print('** Button OK Click!'));
+
     buttonExit = Button(
-        label: 'Exit', parent: this, x: 106, y: 414, width: 100, height: 32);
+        id: 2,
+        label: 'Exit',
+        parent: this,
+        x: 106,
+        y: 414,
+        width: 100,
+        height: 32,
+        onCommand: (p) {
+          print('** Button Exit Click!');
+          exit(0);
+        });
 
     print(textOutput);
   }

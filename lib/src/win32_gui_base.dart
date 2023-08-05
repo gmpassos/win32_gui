@@ -132,6 +132,15 @@ class WindowClass {
           EndPaint(hwnd, ps);
           free(ps);
         }
+      case WM_COMMAND:
+        {
+          for (var w in windowClass._windows) {
+            final hdc = GetDC(hwnd);
+            w.processCommand(hwnd, hdc, lParam);
+            ReleaseDC(hwnd, hdc);
+          }
+        }
+
       case WM_CTLCOLORSTATIC:
         {
           result = _setColors(wParam, staticColors);
@@ -263,6 +272,7 @@ class Window {
 
   int? hwnd;
 
+  final int? hMenu;
   final Window? parent;
 
   Window(
@@ -274,6 +284,7 @@ class Window {
       this.width,
       this.height,
       this.bgColor,
+      this.hMenu,
       this.parent}) {
     windowClass.register();
 
@@ -317,7 +328,7 @@ class Window {
         // Parent window:
         parent?.hwnd ?? NULL,
         // Menu:
-        NULL,
+        hMenu ?? NULL,
         // Instance handle:
         hInstance,
         // Additional application data:
@@ -334,6 +345,8 @@ class Window {
   }
 
   final List<Window> _children = [];
+
+  List<Window> get children => UnmodifiableListView(_children);
 
   void _addChild(Window child) {
     if (_children.contains(child)) {
@@ -530,8 +543,27 @@ class Window {
     }
   }
 
+  void processCommand(int hwnd, int hdc, int lParam) {}
+
   @override
   String toString() {
     return 'Window{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
   }
+}
+
+class ChildWindow extends Window {
+  final int id;
+
+  ChildWindow(
+      {required this.id,
+      required super.windowClass,
+      super.windowName,
+      super.windowStyles = 0,
+      super.x,
+      super.y,
+      super.width,
+      super.height,
+      super.bgColor,
+      required super.parent})
+      : super(hMenu: id);
 }
