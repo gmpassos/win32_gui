@@ -9,15 +9,15 @@ import 'win32_gui_base.dart';
 class RichEdit extends Window {
   static final int richEditLoadedVersion = WindowClass.loadRichEditLibrary();
 
-  static final textOutputWindowClass = WindowClass.predefined(
+  static final windowClassEdit = WindowClass.predefined(
     className: 'edit',
   );
 
-  static final textOutputWindowClassRich2 = WindowClass.predefined(
+  static final windowClassRich2 = WindowClass.predefined(
     className: 'RichEdit20W',
   );
 
-  static final textOutputWindowClassRich1 = WindowClass.predefined(
+  static final windowClassRich1 = WindowClass.predefined(
     className: 'RichEdit',
   );
 
@@ -33,9 +33,9 @@ class RichEdit extends Window {
       int height = CW_USEDEFAULT})
       : super(
           windowClass: switch (richEditLoadedVersion) {
-            2 => textOutputWindowClassRich2,
-            1 => textOutputWindowClassRich1,
-            _ => textOutputWindowClass,
+            2 => windowClassRich2,
+            1 => windowClassRich1,
+            _ => windowClassEdit,
           },
           windowStyles: WS_CHILD |
               ES_READONLY |

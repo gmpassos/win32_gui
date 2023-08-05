@@ -40,6 +40,7 @@ class MainWindow extends Window {
           hwnd, uMsg, wParam, lParam, mainWindowClass);
 
   late final TextOutput textOutput;
+  late final Button button;
 
   MainWindow({super.width, super.height})
       : super(
@@ -47,7 +48,9 @@ class MainWindow extends Window {
           windowClass: mainWindowClass,
           windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
         ) {
-    textOutput = TextOutput(parent: this, y: 150);
+    textOutput =
+        TextOutput(parent: this, x: 2, y: 150, width: 476, height: 486);
+    button = Button(parent: this);
 
     print(textOutput);
   }
