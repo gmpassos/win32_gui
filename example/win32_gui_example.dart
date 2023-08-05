@@ -3,7 +3,7 @@ import 'package:win32_gui/win32_gui.dart';
 Future<void> main() async {
   var editorClass = WindowClassColors(
     textColor: RGB(0, 0, 0),
-    bgColor: RGB(255, 255, 255),
+    bgColor: RGB(128, 128, 128),
   );
 
   WindowClass.editColors = editorClass;
@@ -29,9 +29,9 @@ class MainWindow extends Window {
   static final mainWindowClass = WindowClass.custom(
     className: 'mainWindow',
     windowProc: Pointer.fromFunction<WindowProc>(mainWindowProc, 0),
-    bgColor: RGB(96, 96, 96),
+    bgColor: RGB(255, 255, 255),
     useDarkMode: true,
-    titleColor: RGB(96, 96, 96),
+    titleColor: RGB(32, 32, 32),
   );
 
   // Redirect to default implementation [WindowClass.windowProcDefault].
