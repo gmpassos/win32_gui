@@ -14,10 +14,13 @@ void main() {
     height: 480,
   );
 
+  print('-- mainWindow.ensureLoaded...');
   mainWindow.ensureLoaded();
 
+  print('-- mainWindow.show...');
   mainWindow.show();
 
+  print('-- Window.runMessageLoop...');
   Window.runMessageLoop();
 }
 
