@@ -55,6 +55,8 @@ class MainWindow extends Window {
   Future<void> load() async {
     imageDartLogoPath = await Window.resolveFilePath(
         'package:win32_gui/resources/dart-logo.bmp');
+
+    print('-- imageDartLogoPath: $imageDartLogoPath');
   }
 
   @override
