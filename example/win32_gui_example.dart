@@ -47,7 +47,7 @@ class MainWindow extends Window {
 
   MainWindow({super.width, super.height})
       : super(
-          windowName: 'Main Window',
+          windowName: 'Win32 GUI - Example',
           windowClass: mainWindowClass,
           windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
         ) {
