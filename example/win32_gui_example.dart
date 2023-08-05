@@ -115,11 +115,11 @@ class TextOutput extends RichEdit {
   @override
   void repaint(int hwnd, int hdc) {
     SetTextColor(hdc, RGB(0, 255, 0));
-    setBkColor(hwnd, RGB(16, 16, 16));
+    setBkColor(hwnd, RGB(32, 32, 32));
     setAutoURLDetect(hwnd, true);
 
     appendText(hwnd, RGB(255, 255, 255), "-------------------------\r\n");
-    appendText(hwnd, RGB(0, 0, 255), "Hello ");
+    appendText(hwnd, RGB(0, 255, 255), "Hello ");
     appendText(hwnd, RGB(0, 255, 0), "Word!\r\n ");
     appendText(hwnd, RGB(255, 255, 255), "-------------------------\r\n");
   }
