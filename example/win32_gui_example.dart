@@ -88,12 +88,12 @@ class MainWindow extends Window {
     var hBitmap = loadImageCached(hwnd, imageDartLogoPath, imgW, imgH);
 
     final hSpace = (dimensionWidth - imgW);
-    final vSpace = (dimensionHeight - imgH);
+    //final vSpace = (dimensionHeight - imgH);
     final xCenter = hSpace ~/ 2;
     //final yCenter = vSpace ~/ 2;
 
     final x = xCenter;
-    final y = vSpace;
+    final y = 10;
 
     drawImage(hwnd, hdc, hBitmap, x, y, imgW, imgH);
 
