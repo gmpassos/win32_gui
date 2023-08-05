@@ -9,12 +9,14 @@ class Button extends Window {
 
   Button(
       {super.parent,
+      required String label,
       int x = CW_USEDEFAULT,
       int y = CW_USEDEFAULT,
       int width = CW_USEDEFAULT,
       int height = CW_USEDEFAULT})
       : super(
           windowClass: buttonWindowClass,
+          windowName: label,
           windowStyles: WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
           x: x,
           y: y,

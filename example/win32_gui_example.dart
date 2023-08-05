@@ -40,7 +40,8 @@ class MainWindow extends Window {
           hwnd, uMsg, wParam, lParam, mainWindowClass);
 
   late final TextOutput textOutput;
-  late final Button button;
+  late final Button buttonOK;
+  late final Button buttonExit;
 
   MainWindow({super.width, super.height})
       : super(
@@ -49,8 +50,12 @@ class MainWindow extends Window {
           windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
         ) {
     textOutput =
-        TextOutput(parent: this, x: 2, y: 150, width: 476, height: 486);
-    button = Button(parent: this);
+        TextOutput(parent: this, x: 4, y: 160, width: 626, height: 250);
+
+    buttonOK =
+        Button(label: 'OK', parent: this, x: 4, y: 414, width: 100, height: 32);
+    buttonExit = Button(
+        label: 'Exit', parent: this, x: 106, y: 414, width: 100, height: 32);
 
     print(textOutput);
   }
