@@ -1,6 +1,6 @@
 import 'package:win32_gui/win32_gui.dart';
 
-void main() {
+Future<void> main() async {
   var editorClass = WindowClassColors(
     textColor: RGB(0, 0, 0),
     bgColor: RGB(255, 255, 255),
@@ -15,7 +15,7 @@ void main() {
   );
 
   print('-- mainWindow.ensureLoaded...');
-  mainWindow.ensureLoaded();
+  await mainWindow.ensureLoaded();
 
   print('-- mainWindow.show...');
   mainWindow.show();
