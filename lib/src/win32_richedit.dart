@@ -3,8 +3,8 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
-import 'win32_gui_base.dart';
 import 'win32_constants_extra.dart';
+import 'win32_gui_base.dart';
 
 class RichEdit extends Window {
   static final int richEditLoadedVersion = WindowClass.loadRichEditLibrary();
@@ -21,7 +21,14 @@ class RichEdit extends Window {
     className: 'RichEdit',
   );
 
-  RichEdit({super.parentHwnd})
+  late final int version;
+
+  RichEdit(
+      {super.parent,
+      int x = CW_USEDEFAULT,
+      int y = CW_USEDEFAULT,
+      int width = CW_USEDEFAULT,
+      int height = CW_USEDEFAULT})
       : super(
           windowClass: switch (richEditLoadedVersion) {
             2 => textOutputWindowClassRich2,
@@ -39,12 +46,15 @@ class RichEdit extends Window {
               ES_NOHIDESEL |
               ES_AUTOHSCROLL |
               ES_AUTOVSCROLL,
-          x: 4,
-          y: 360,
-          width: 626,
-          height: 90,
+          x: x,
+          y: y,
+          width: width,
+          height: height,
         ) {
-    print('!!! richEditLoadedVersion: $richEditLoadedVersion');
+    version = richEditLoadedVersion;
+    if (version <= 0) {
+      throw StateError("Can't load `RichEdit` library!");
+    }
   }
 
   @override
@@ -128,6 +138,11 @@ class RichEdit extends Window {
 
     var r3 = scrollToBottom(hwnd); // scroll to bottom
     print('!!! scrollToBottom> $r3');
+  }
+
+  @override
+  String toString() {
+    return 'RichEdit{version: $version}';
   }
 }
 

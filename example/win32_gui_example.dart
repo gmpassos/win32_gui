@@ -3,7 +3,7 @@ import 'package:win32_gui/win32_gui.dart';
 void main() {
   var editorClass = WindowClassColors(
     textColor: RGB(0, 0, 0),
-    bgColor: RGB(128, 128, 128),
+    bgColor: RGB(255, 255, 255),
   );
 
   WindowClass.editColors = editorClass;
@@ -13,6 +13,8 @@ void main() {
     width: 640,
     height: 480,
   );
+
+  mainWindow.ensureLoaded();
 
   mainWindow.show();
 
@@ -42,7 +44,17 @@ class MainWindow extends Window {
           windowClass: mainWindowClass,
           windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
         ) {
-    richEdit = RichEdit(parentHwnd: hwnd);
+    richEdit = RichEdit(parent: this);
+
+    print(richEdit);
+  }
+
+  late final String imageDartLogoPath;
+
+  @override
+  Future<void> load() async {
+    imageDartLogoPath = await Window.resolveFilePath(
+        'package:win32_gui/resources/dart-logo.bmp');
   }
 
   @override
@@ -59,21 +71,20 @@ class MainWindow extends Window {
   void repaint(int hwnd, int hdc) {
     super.repaint(hwnd, hdc);
 
-    final imgPath = r'C:\menuici\menuici-logo-24.bmp';
-    var w = 512;
-    var h = 512;
+    var imgW = 143;
+    var imgH = 139;
 
-    var hBitmap = loadImageCached(hwnd, imgPath, w, h);
+    var hBitmap = loadImageCached(hwnd, imageDartLogoPath, imgW, imgH);
 
-    final hSpace = (dimensionWidth - w);
-    final vSpace = (dimensionHeight - h);
+    final hSpace = (dimensionWidth - imgW);
+    final vSpace = (dimensionHeight - imgH);
     final xCenter = hSpace ~/ 2;
     //final yCenter = vSpace ~/ 2;
 
     final x = xCenter;
     final y = vSpace;
 
-    drawImage(hwnd, hdc, hBitmap, x, y, w, h);
+    drawImage(hwnd, hdc, hBitmap, x, y, imgW, imgH);
 
     richEdit.callRepaint();
   }

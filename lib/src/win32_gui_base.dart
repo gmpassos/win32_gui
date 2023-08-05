@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:math' as math;
 
 import 'package:ffi/ffi.dart';
+import 'package:resource_portable/resource.dart';
 import 'package:win32/win32.dart';
 
 final hInstance = GetModuleHandle(nullptr);
@@ -243,6 +244,11 @@ class Window {
     }
   }
 
+  static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
+
+  static Future<String> resolveFilePath(String path) =>
+      resolveFileUri(path).then((uri) => uri.toFilePath());
+
   final WindowClass windowClass;
   final String? windowName;
 
@@ -256,7 +262,8 @@ class Window {
   int? bgColor;
 
   int? hwnd;
-  int? parentHwnd;
+
+  final Window? parent;
 
   Window(
       {required this.windowClass,
@@ -267,7 +274,7 @@ class Window {
       this.width,
       this.height,
       this.bgColor,
-      this.parentHwnd}) {
+      this.parent}) {
     windowClass.register();
 
     var hwnd = create();
@@ -278,6 +285,8 @@ class Window {
     this.hwnd = hwnd;
 
     windowClass.registerWindow(this);
+
+    parent?._addChild(this);
   }
 
   Pointer<Utf16>? _windowNameNative;
@@ -306,7 +315,7 @@ class Window {
         height ?? CW_USEDEFAULT,
 
         // Parent window:
-        parentHwnd ?? NULL,
+        parent?.hwnd ?? NULL,
         // Menu:
         NULL,
         // Instance handle:
@@ -324,7 +333,19 @@ class Window {
     return hwnd;
   }
 
+  final List<Window> _children = [];
+
+  void _addChild(Window child) {
+    if (_children.contains(child)) {
+      throw StateError("Child already added: $child");
+    }
+
+    _children.add(child);
+  }
+
   void show({int? hwnd}) {
+    ensureLoaded();
+
     hwnd ??= this.hwnd;
 
     if (hwnd != null) {
@@ -332,6 +353,23 @@ class Window {
       UpdateWindow(hwnd);
     }
   }
+
+  Future<void>? _loadCall;
+
+  Future<void> ensureLoaded() => _loadCall ??= _callLoad();
+
+  Future<void> _callLoad() async {
+    await load();
+
+    for (var child in _children) {
+      await child.ensureLoaded();
+    }
+  }
+
+  /// Loads asynchronous resources.
+  /// - Do not call directly, use [ensureLoaded].
+  /// - Note that Win32 API [build] and [repaint] won't allow any asynchronous call ([Future]s).
+  Future<void> load() async {}
 
   final dimension = calloc<RECT>();
 
@@ -348,6 +386,8 @@ class Window {
   int get dimensionHeight => dimension.ref.bottom - dimension.ref.top;
 
   bool callBuild({int? hwnd, int? hdc}) {
+    ensureLoaded();
+
     hwnd ??= this.hwnd;
     if (hwnd == null) return false;
 
@@ -374,6 +414,8 @@ class Window {
   }
 
   bool callRepaint({int? hwnd, int? hdc}) {
+    ensureLoaded();
+
     hwnd ??= this.hwnd;
     if (hwnd == null) return false;
 
@@ -465,6 +507,6 @@ class Window {
 
   @override
   String toString() {
-    return 'Window{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parentHwnd: $parentHwnd}@$windowClass';
+    return 'Window{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
   }
 }
