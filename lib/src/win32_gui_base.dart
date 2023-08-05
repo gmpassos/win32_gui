@@ -544,7 +544,7 @@ class Window {
   }
 
   void processCommand(int hwnd, int hdc, int lParam) {
-    for (var child in _children.whereType<ChildWindow>()) {
+    for (var child in _children) {
       if (child.hwnd == lParam) {
         child.processCommand(hwnd, hdc, lParam);
       }
