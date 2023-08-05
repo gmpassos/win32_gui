@@ -118,9 +118,9 @@ class TextOutput extends RichEdit {
     setBkColor(hwnd, RGB(32, 32, 32));
     setAutoURLDetect(hwnd, true);
 
-    appendText(hwnd, RGB(255, 255, 255), "-------------------------\r\n");
-    appendText(hwnd, RGB(0, 255, 255), "Hello ");
+    appendText(hwnd, RGB(255, 255, 255), " -------------------------\r\n");
+    appendText(hwnd, RGB(0, 255, 255), " Hello ");
     appendText(hwnd, RGB(0, 255, 0), "Word!\r\n ");
-    appendText(hwnd, RGB(255, 255, 255), "-------------------------\r\n");
+    appendText(hwnd, RGB(255, 255, 255), " -------------------------\r\n");
   }
 }
