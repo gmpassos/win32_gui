@@ -21,7 +21,9 @@ class RichEdit extends Window {
     className: 'RichEdit',
   );
 
-  late final int version;
+  int _version = -1;
+
+  int get version => _version;
 
   RichEdit(
       {super.parent,
@@ -51,8 +53,8 @@ class RichEdit extends Window {
           width: width,
           height: height,
         ) {
-    version = richEditLoadedVersion;
-    if (version <= 0) {
+    _version = richEditLoadedVersion;
+    if (_version <= 0) {
       throw StateError("Can't load `RichEdit` library!");
     }
   }
