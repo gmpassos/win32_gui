@@ -73,12 +73,14 @@ class MainWindow extends Window {
     SetTextColor(hdc, RGB(255, 255, 255));
     SetBkColor(hdc, RGB(96, 96, 96));
 
-    setIcon(hwnd, iconDartLogoPath);
+    // Some extra build...
   }
 
   @override
   void repaint(int hwnd, int hdc) {
     super.repaint(hwnd, hdc);
+
+    setIcon(hwnd, iconDartLogoPath);
 
     var imgW = 143;
     var imgH = 139;
