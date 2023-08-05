@@ -543,7 +543,11 @@ class Window {
     }
   }
 
-  void processCommand(int hwnd, int hdc, int lParam) {}
+  void processCommand(int hwnd, int hdc, int lParam) {
+    for (var child in _children) {
+      child.processCommand(hwnd, hdc, lParam);
+    }
+  }
 
   @override
   String toString() {
