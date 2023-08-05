@@ -340,6 +340,8 @@ class Window {
       throw StateError("Child already added: $child");
     }
 
+    print('-- Add child: $this -> $child');
+
     _children.add(child);
   }
 
