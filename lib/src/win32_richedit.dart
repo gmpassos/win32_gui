@@ -140,7 +140,7 @@ class RichEdit extends Window {
 
   @override
   String toString() {
-    return 'RichEdit{version: $version}';
+    return 'RichEdit#$hwnd{version: $version}';
   }
 }
 

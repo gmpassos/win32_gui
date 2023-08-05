@@ -41,6 +41,6 @@ class Button extends ChildWindow {
   @override
   String toString() {
 
-    return 'Button{id: $id}';
+    return 'Button#$hwnd{id: $id}';
   }
 }

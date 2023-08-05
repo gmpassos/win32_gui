@@ -545,7 +545,7 @@ class Window {
 
   void processCommand(int hwnd, int hdc, int lParam) {
     for (var child in _children.whereType<ChildWindow>()) {
-      if (child.id == lParam) {
+      if (child.hwnd == lParam) {
         child.processCommand(hwnd, hdc, lParam);
       }
     }
@@ -553,7 +553,7 @@ class Window {
 
   @override
   String toString() {
-    return 'Window{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
+    return 'Window#$hwnd{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
   }
 }
 
