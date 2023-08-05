@@ -39,7 +39,7 @@ class MainWindow extends Window {
       WindowClass.windowProcDefault(
           hwnd, uMsg, wParam, lParam, mainWindowClass);
 
-  late final RichEdit richEdit;
+  late final TextOutput textOutput;
 
   MainWindow({super.width, super.height})
       : super(
@@ -47,9 +47,9 @@ class MainWindow extends Window {
           windowClass: mainWindowClass,
           windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
         ) {
-    richEdit = RichEdit(parent: this);
+    textOutput = TextOutput(parent: this, y: 150);
 
-    print(richEdit);
+    print(textOutput);
   }
 
   late final String imageDartLogoPath;
@@ -97,6 +97,22 @@ class MainWindow extends Window {
 
     drawImage(hwnd, hdc, hBitmap, x, y, imgW, imgH);
 
-    richEdit.callRepaint();
+    textOutput.callRepaint();
+  }
+}
+
+class TextOutput extends RichEdit {
+  TextOutput({super.parent, super.x, super.y, super.width, super.height});
+
+  @override
+  void repaint(int hwnd, int hdc) {
+    SetTextColor(hdc, RGB(0, 255, 0));
+    setBkColor(hwnd, RGB(16, 16, 16));
+    setAutoURLDetect(hwnd, true);
+
+    appendText(hwnd, RGB(255, 255, 255), "-------------------------\r\n");
+    appendText(hwnd, RGB(0, 0, 255), "Hello ");
+    appendText(hwnd, RGB(0, 255, 0), "Word!\r\n ");
+    appendText(hwnd, RGB(255, 255, 255), "-------------------------\r\n");
   }
 }
