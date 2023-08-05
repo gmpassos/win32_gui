@@ -365,7 +365,11 @@ class Window {
 
     await load();
 
+    print('-- Loaded> $this');
+
     for (var child in _children) {
+      print('-- Loading child> $child');
+
       await child.ensureLoaded();
     }
   }
