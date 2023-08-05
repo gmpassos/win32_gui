@@ -513,6 +513,23 @@ class Window {
     DeleteObject(hMemDC);
   }
 
+  void setIcon(int hwnd, String iconPath,
+      {bool small = true, bool big = true}) {
+    var iconPathPtr = iconPath.toNativeUtf16();
+
+    if (small) {
+      var hIcon =
+          LoadImage(NULL, iconPathPtr, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+      SendMessage(hwnd, WM_SETICON, ICON_SMALL, hIcon);
+    }
+
+    if (big) {
+      var hIcon =
+          LoadImage(NULL, iconPathPtr, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+      SendMessage(hwnd, WM_SETICON, ICON_BIG, hIcon);
+    }
+  }
+
   @override
   String toString() {
     return 'Window{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';

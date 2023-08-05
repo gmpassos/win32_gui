@@ -53,6 +53,7 @@ class MainWindow extends Window {
   }
 
   late final String imageDartLogoPath;
+  late final String iconDartLogoPath;
 
   @override
   Future<void> load() async {
@@ -60,6 +61,9 @@ class MainWindow extends Window {
         'package:win32_gui/resources/dart-logo.bmp');
 
     print('-- imageDartLogoPath: $imageDartLogoPath');
+
+    iconDartLogoPath = await Window.resolveFilePath(
+        'package:win32_gui/resources/dart-icon.ico');
   }
 
   @override
@@ -69,7 +73,7 @@ class MainWindow extends Window {
     SetTextColor(hdc, RGB(255, 255, 255));
     SetBkColor(hdc, RGB(96, 96, 96));
 
-    // Some extra build...
+    setIcon(hwnd, iconDartLogoPath);
   }
 
   @override
