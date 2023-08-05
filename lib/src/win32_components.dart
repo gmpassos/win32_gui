@@ -40,6 +40,7 @@ class Button extends ChildWindow {
 
   @override
   String toString() {
+
     return 'Button{id: $id}';
   }
 }
