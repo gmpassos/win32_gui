@@ -361,6 +361,8 @@ class Window {
   Future<void> ensureLoaded() => _loadCall ??= _callLoad();
 
   Future<void> _callLoad() async {
+    print('-- _callLoad> $this');
+
     await load();
 
     for (var child in _children) {
