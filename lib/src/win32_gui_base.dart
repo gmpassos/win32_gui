@@ -304,12 +304,7 @@ class Window {
       this.parent}) {
     windowClass.register();
 
-    var hwnd = create();
-    if (hwnd == 0) {
-      throw StateError("Can't create window: $this");
-    }
-
-    _hwnd = hwnd;
+    create();
 
     windowClass.registerWindow(this);
 
@@ -350,12 +345,13 @@ class Window {
         // Additional application data:
         nullptr);
 
-    if (hwnd != 0) {
-      updateWindow();
-    } else {
+    if (hwnd == 0) {
       var errorCode = GetLastError();
-      print('** GetLastError: $errorCode');
+      throw StateError("Can't create window> errorCode: $errorCode -> $this");
     }
+
+    _hwnd = hwnd;
+    updateWindow();
 
     return hwnd;
   }
