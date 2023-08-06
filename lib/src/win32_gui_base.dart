@@ -515,6 +515,9 @@ class Window {
     return str;
   }
 
+  bool setWindowText(String text) =>
+      SetWindowText(hwnd, text.toNativeUtf16()) != 0;
+
   void drawText(int hdc, String text, int x, int y) {
     final s = text.toNativeUtf16();
     TextOut(hdc, x, y, s, text.length);

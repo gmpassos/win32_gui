@@ -140,11 +140,6 @@ class TextOutput extends RichEdit {
 
     setAutoURLDetect(true);
 
-    appendText(RGB(255, 255, 255), " -------------------------\r\n");
-    appendText(RGB(0, 255, 255), " Hello ");
-    appendText(RGB(0, 255, 0), "Word!\r\n");
-    appendText(RGB(255, 255, 255), " -------------------------\r\n");
-
     // Some extra build operations:
     // ...
   }
@@ -155,6 +150,15 @@ class TextOutput extends RichEdit {
 
     setBkColor(RGB(32, 32, 32));
     setTextColor(hdc, RGB(255, 255, 255));
+
+    setTextFormatted([
+      TextFormatted(" -------------------------\r\n",
+          color: RGB(255, 255, 255)),
+      TextFormatted(" Hello", color: RGB(0, 255, 255)),
+      TextFormatted(" Word! \r\n", color: RGB(0, 255, 0)),
+      TextFormatted(" -------------------------\r\n",
+          color: RGB(255, 255, 255)),
+    ]);
 
     // Some extra repaint operations:
     // ...

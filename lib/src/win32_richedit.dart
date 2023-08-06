@@ -103,14 +103,40 @@ class RichEdit extends ChildWindow {
       sendMessage(EM_REPLACESEL, 0, str.address);
 
   /// Append a text with different colors.
-  void appendText(int color, String text) {
+  void appendText(String text,
+      {int? color,
+      bool bold = false,
+      bool italic = false,
+      bool underline = false,
+      bool scrollToBottom = true}) {
     final hwnd = this.hwnd;
 
-    var cf = getCharFormat(hwnd);
-    cf.ref.cbSize = sizeOf<CHARFORMAT>();
-    cf.ref.dwMask = CFM_COLOR; // change color
-    cf.ref.crTextColor = color;
-    cf.ref.dwEffects = 0;
+    final cf = getCharFormat(hwnd);
+    final cfRef = cf.ref;
+
+    cfRef.cbSize = sizeOf<CHARFORMAT>();
+    cfRef.dwMask = 0;
+    cfRef.dwEffects = 0;
+
+    if (color != null) {
+      cfRef.dwMask |= CFM_COLOR;
+      cfRef.crTextColor = color;
+    }
+
+    if (bold) {
+      cfRef.dwMask |= CFM_BOLD;
+      cfRef.dwEffects |= CFE_BOLD;
+    }
+
+    if (italic) {
+      cfRef.dwMask |= CFM_ITALIC;
+      cfRef.dwEffects |= CFE_ITALIC;
+    }
+
+    if (underline) {
+      cfRef.dwMask |= CFM_UNDERLINE;
+      cfRef.dwEffects |= CFE_UNDERLINE;
+    }
 
     setCharFormat(cf);
 
@@ -118,7 +144,44 @@ class RichEdit extends ChildWindow {
 
     setCursorToBottom();
     replaceSel(str);
-    scrollToBottom();
+
+    if (scrollToBottom) {
+      this.scrollToBottom();
+    }
+  }
+
+  void appendTextFormatted(TextFormatted textFormatted,
+          {bool scrollToBottom = true}) =>
+      appendText(textFormatted.text,
+          bold: textFormatted.bold,
+          italic: textFormatted.italic,
+          underline: textFormatted.underline,
+          color: textFormatted.color,
+          scrollToBottom: scrollToBottom);
+
+  int appendAllTextFormatted(Iterable<TextFormatted> textFormatted,
+      {bool scrollToBottom = true}) {
+    var list = textFormatted.toList();
+    if (list.isEmpty) return 0;
+
+    var beforeLastIdx = list.length - 1;
+    for (var i = 0; i < beforeLastIdx; ++i) {
+      var tf = list[i];
+      appendTextFormatted(tf, scrollToBottom: scrollToBottom);
+    }
+
+    {
+      var tf = list.last;
+      appendTextFormatted(tf, scrollToBottom: scrollToBottom);
+    }
+
+    return list.length;
+  }
+
+  void setTextFormatted(Iterable<TextFormatted> textFormatted,
+      {bool scrollToBottom = true}) {
+    setWindowText('');
+    appendAllTextFormatted(textFormatted, scrollToBottom: scrollToBottom);
   }
 
   @override
@@ -190,4 +253,25 @@ base class CHARFORMAT extends Struct {
       _szFaceName[i] = stringToStore.codeUnitAt(i);
     }
   }
+}
+
+class TextFormatted {
+  final String text;
+  final bool bold;
+
+  final bool italic;
+
+  final bool underline;
+
+  final int? color;
+
+  TextFormatted(this.text,
+      {this.bold = false,
+      this.italic = false,
+      this.underline = false,
+      this.color});
+
+  @override
+  String toString() =>
+      'TextFormatted{bold: $bold, italic: $italic, underline: $underline, color: $color}<<$text>>';
 }
