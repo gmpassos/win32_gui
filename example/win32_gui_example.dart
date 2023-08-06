@@ -55,7 +55,6 @@ class MainWindow extends Window {
         TextOutput(parent: this, x: 4, y: 160, width: 626, height: 250);
 
     buttonOK = Button(
-        id: 1,
         label: 'OK',
         parent: this,
         x: 4,
@@ -65,7 +64,6 @@ class MainWindow extends Window {
         onCommand: (p) => print('** Button OK Click!'));
 
     buttonExit = Button(
-        id: 2,
         label: 'Exit',
         parent: this,
         x: 106,
@@ -130,17 +128,35 @@ class MainWindow extends Window {
 }
 
 class TextOutput extends RichEdit {
-  TextOutput({super.parent, super.x, super.y, super.width, super.height});
+  TextOutput({super.parent, super.x, super.y, super.width, super.height})
+      : super(bgColor: RGB(32, 32, 32));
+
+  @override
+  void build(int hwnd, int hdc) {
+    super.build(hwnd, hdc);
+
+    setBkColor(RGB(32, 32, 32));
+    setTextColor(hdc, RGB(255, 255, 255));
+
+    setAutoURLDetect(true);
+
+    appendText(RGB(255, 255, 255), " -------------------------\r\n");
+    appendText(RGB(0, 255, 255), " Hello ");
+    appendText(RGB(0, 255, 0), "Word!\r\n");
+    appendText(RGB(255, 255, 255), " -------------------------\r\n");
+
+    // Some extra build operations:
+    // ...
+  }
 
   @override
   void repaint(int hwnd, int hdc) {
-    SetTextColor(hdc, RGB(0, 255, 0));
-    setBkColor(hwnd, RGB(32, 32, 32));
-    setAutoURLDetect(hwnd, true);
+    super.repaint(hwnd, hdc);
 
-    appendText(hwnd, RGB(255, 255, 255), " -------------------------\r\n");
-    appendText(hwnd, RGB(0, 255, 255), " Hello ");
-    appendText(hwnd, RGB(0, 255, 0), "Word!\r\n");
-    appendText(hwnd, RGB(255, 255, 255), " -------------------------\r\n");
+    setBkColor(RGB(32, 32, 32));
+    setTextColor(hdc, RGB(255, 255, 255));
+
+    // Some extra repaint operations:
+    // ...
   }
 }

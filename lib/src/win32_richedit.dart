@@ -6,7 +6,7 @@ import 'package:win32/win32.dart';
 import 'win32_constants_extra.dart';
 import 'win32_gui_base.dart';
 
-class RichEdit extends Window {
+class RichEdit extends ChildWindow {
   static final int richEditLoadedVersion = WindowClass.loadRichEditLibrary();
 
   static final windowClassEdit = WindowClass.predefined(
@@ -26,11 +26,13 @@ class RichEdit extends Window {
   int get version => _version;
 
   RichEdit(
-      {super.parent,
+      {super.id,
+      super.parent,
       int x = CW_USEDEFAULT,
       int y = CW_USEDEFAULT,
       int width = CW_USEDEFAULT,
-      int height = CW_USEDEFAULT})
+      int height = CW_USEDEFAULT,
+      super.bgColor})
       : super(
           windowClass: switch (richEditLoadedVersion) {
             2 => windowClassRich2,
@@ -59,42 +61,28 @@ class RichEdit extends Window {
     }
   }
 
-  @override
-  void build(int hwnd, int hdc) {
-    super.build(hwnd, hdc);
+  int setTextColor(hdc, int color) => SetTextColor(hdc, color);
 
-    SetTextColor(hdc, RGB(255, 255, 255));
-    SetBkColor(hdc, RGB(42, 40, 38));
+  int setBkColor(int color) => sendMessage(EM_SETBKGNDCOLOR, 0, color);
 
-    setBkColor(hwnd, RGB(42, 40, 38));
-    setAutoURLDetect(hwnd, true);
-  }
+  int setAutoURLDetect(bool autoDetect) =>
+      sendMessage(EM_AUTOURLDETECT, autoDetect ? 1 : 0, 0);
 
-  @override
-  void repaint(int hwnd, int hdc) {
-    SetTextColor(hdc, RGB(0, 255, 0));
-    setBkColor(hwnd, RGB(16, 16, 16));
-    setAutoURLDetect(hwnd, true);
-  }
+  int setCursorToBottom() => sendMessage(EM_SETSEL, -2, -1);
 
-  int setBkColor(int hwnd, int color) =>
-      SendMessage(hwnd, EM_SETBKGNDCOLOR, 0, color);
+  bool scrollVTo(int pos) => sendMessage(WM_VSCROLL, pos, 0) == 0;
 
-  int setAutoURLDetect(int hwnd, bool autoDetect) =>
-      SendMessage(hwnd, EM_AUTOURLDETECT, autoDetect ? 1 : 0, 0);
+  bool scrollHTo(int pos) => sendMessage(WM_HSCROLL, pos, 0) == 0;
 
-  int setCursorToBottom(int hwnd) => SendMessage(hwnd, EM_SETSEL, -2, -1);
+  bool scrollToTop() => scrollVTo(SB_TOP);
 
-  int scrollTo(int hwnd, int pos) => SendMessage(hwnd, WM_VSCROLL, pos, 0);
-
-  int scrollToBottom(int hwnd) => scrollTo(hwnd, SB_BOTTOM);
+  bool scrollToBottom() => scrollVTo(SB_BOTTOM);
 
   Pointer<CHARFORMAT> getCharFormat(int hwnd, [int range = SCF_SELECTION]) {
     final cf = calloc<CHARFORMAT>();
 
-    var r = SendMessage(hwnd, EM_GETCHARFORMAT, range, cf.address);
-    print('!!! getCharFormat> $r');
-    print(cf.toString());
+    SendMessage(hwnd, EM_GETCHARFORMAT, range, cf.address);
+
     print(cf.ref.cbSize);
     print(cf.ref.dwMask);
     print(cf.ref.dwEffects);
@@ -108,34 +96,29 @@ class RichEdit extends Window {
     return cf;
   }
 
-  int setCharFormat(int hwnd, Pointer<CHARFORMAT> cf,
-          [int range = SCF_SELECTION]) =>
-      SendMessage(hwnd, EM_SETCHARFORMAT, range, cf.address);
+  bool setCharFormat(Pointer<CHARFORMAT> cf, [int range = SCF_SELECTION]) =>
+      sendMessage(EM_SETCHARFORMAT, range, cf.address) == 1;
 
-  int replaceSel(int hwnd, Pointer<Utf16> str) =>
-      SendMessage(hwnd, EM_REPLACESEL, 0, str.address);
+  int replaceSel(Pointer<Utf16> str) =>
+      sendMessage(EM_REPLACESEL, 0, str.address);
 
-  // this function is used to output text in different color
-  void appendText(int hwnd, int clr, String text) {
-    var str = text.toNativeUtf16();
+  /// Append a text with different colors.
+  void appendText(int color, String text) {
+    final hwnd = this.hwnd;
 
-    var r0 = setCursorToBottom(hwnd); // move cursor to bottom
-    print('!!! setCursorToBottom> $r0');
-
-    var cf = getCharFormat(hwnd); // get default char format
+    var cf = getCharFormat(hwnd);
     cf.ref.cbSize = sizeOf<CHARFORMAT>();
     cf.ref.dwMask = CFM_COLOR; // change color
-    cf.ref.crTextColor = clr;
+    cf.ref.crTextColor = color;
     cf.ref.dwEffects = 0;
 
-    var r1 = setCharFormat(hwnd, cf); // set default char format
-    print('!!! setCharFormat> $r1');
+    setCharFormat(cf);
 
-    var r2 = replaceSel(hwnd, str); // code from google
-    print('!!! replaceSel> $r2');
+    var str = text.toNativeUtf16();
 
-    var r3 = scrollToBottom(hwnd); // scroll to bottom
-    print('!!! scrollToBottom> $r3');
+    setCursorToBottom();
+    replaceSel(str);
+    scrollToBottom();
   }
 
   @override

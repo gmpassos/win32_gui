@@ -10,7 +10,7 @@ class Button extends ChildWindow {
   final void Function(int lParam)? onCommand;
 
   Button(
-      {required super.id,
+      {super.id,
       super.parent,
       required String label,
       int windowStyles = WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,

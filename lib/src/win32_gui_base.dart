@@ -351,7 +351,7 @@ class Window {
         nullptr);
 
     if (hwnd != 0) {
-      UpdateWindow(hwnd);
+      updateWindow();
     } else {
       var errorCode = GetLastError();
       print('** GetLastError: $errorCode');
@@ -466,12 +466,14 @@ class Window {
 
   int get dimensionHeight => dimension.ref.bottom - dimension.ref.top;
 
+  bool updateWindow() => UpdateWindow(hwnd) == 1;
+
   void show() {
     ensureLoaded();
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
-    UpdateWindow(hwnd);
+    updateWindow();
   }
 
   void drawBG(int hdc) {
@@ -505,6 +507,16 @@ class Window {
       FillRect(hdc, r, hBrush);
       DeleteObject(hBrush);
     }
+  }
+
+  int getWindowTextLength() => GetWindowTextLength(hwnd);
+
+  String getWindowText({int? length}) {
+    length ??= getWindowTextLength();
+    final strPtr = wsalloc(length + 1);
+    GetWindowText(hwnd, strPtr, length + 1);
+    final str = strPtr.toDartString();
+    return str;
   }
 
   void drawText(int hdc, String text, int x, int y) {
@@ -567,10 +579,14 @@ class Window {
 }
 
 class ChildWindow extends Window {
-  final int id;
+  static int idCount = 0;
+
+  static int newID() => ++idCount;
+
+  int get id => hMenu!;
 
   ChildWindow(
-      {required this.id,
+      {int? id,
       required super.windowClass,
       super.windowName,
       super.windowStyles = 0,
@@ -580,5 +596,5 @@ class ChildWindow extends Window {
       super.height,
       super.bgColor,
       required super.parent})
-      : super(hMenu: id);
+      : super(hMenu: id ?? newID());
 }
