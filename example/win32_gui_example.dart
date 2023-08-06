@@ -108,12 +108,12 @@ class MainWindow extends Window {
   void repaint(int hwnd, int hdc) {
     super.repaint(hwnd, hdc);
 
-    setIcon(hwnd, iconDartLogoPath);
+    setIcon(iconDartLogoPath);
 
     var imgW = 143;
     var imgH = 139;
 
-    var hBitmap = loadImageCached(hwnd, imageDartLogoPath, imgW, imgH);
+    var hBitmap = loadImageCached(imageDartLogoPath, imgW, imgH);
 
     final hSpace = (dimensionWidth - imgW);
     //final vSpace = (dimensionHeight - imgH);
@@ -123,7 +123,7 @@ class MainWindow extends Window {
     final x = xCenter;
     final y = 10;
 
-    drawImage(hwnd, hdc, hBitmap, x, y, imgW, imgH);
+    drawImage(hdc, hBitmap, x, y, imgW, imgH);
 
     textOutput.callRepaint();
   }

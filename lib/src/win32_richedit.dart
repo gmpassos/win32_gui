@@ -140,7 +140,7 @@ class RichEdit extends Window {
 
   @override
   String toString() {
-    return 'RichEdit#$hwnd{version: $version}';
+    return 'RichEdit#$hwndIfCreated{version: $version}';
   }
 }
 
@@ -159,9 +159,10 @@ typedef struct _charformat
 	TCHAR		szFaceName[LF_FACESIZE];
 	_WPAD		_wPad2;
 } CHARFORMAT;
- */
 
-//const LF_FACESIZE = 32;
+const LF_FACESIZE = 32;
+
+ */
 
 base class CHARFORMAT extends Struct {
   @Uint32()
@@ -187,8 +188,6 @@ base class CHARFORMAT extends Struct {
 
   @Uint8()
   external int bPitchAndFamily;
-
-  //external Pointer<Utf16> szFaceName;
 
   @Array(LF_FACESIZE)
   external Array<Uint16> _szFaceName;

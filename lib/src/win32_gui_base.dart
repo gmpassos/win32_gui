@@ -115,7 +115,9 @@ class WindowClass {
           }
 
           for (var w in windowClass._windows) {
-            w.callBuild(hwnd: hwnd, hdc: hdc);
+            if (w._hwnd == hwnd) {
+              w.callBuild(hdc: hdc);
+            }
           }
 
           ReleaseDC(hwnd, hdc);
@@ -126,7 +128,9 @@ class WindowClass {
           final hdc = BeginPaint(hwnd, ps);
 
           for (var w in windowClass._windows) {
-            w.callRepaint(hwnd: hwnd, hdc: hdc);
+            if (w._hwnd == hwnd) {
+              w.callRepaint(hdc: hdc);
+            }
           }
 
           EndPaint(hwnd, ps);
@@ -270,7 +274,19 @@ class Window {
 
   int? bgColor;
 
-  int? hwnd;
+  bool get created => _hwnd != null;
+
+  int? _hwnd;
+
+  int get hwnd {
+    final hwnd = _hwnd;
+    if (hwnd == null) {
+      throw StateError("Window not created! `hwnd` not defined.");
+    }
+    return hwnd;
+  }
+
+  int? get hwndIfCreated => _hwnd;
 
   final int? hMenu;
   final Window? parent;
@@ -293,7 +309,7 @@ class Window {
       throw StateError("Can't create window: $this");
     }
 
-    this.hwnd = hwnd;
+    _hwnd = hwnd;
 
     windowClass.registerWindow(this);
 
@@ -326,7 +342,7 @@ class Window {
         height ?? CW_USEDEFAULT,
 
         // Parent window:
-        parent?.hwnd ?? NULL,
+        parent?._hwnd ?? NULL,
         // Menu:
         hMenu ?? NULL,
         // Instance handle:
@@ -358,17 +374,6 @@ class Window {
     _children.add(child);
   }
 
-  void show({int? hwnd}) {
-    ensureLoaded();
-
-    hwnd ??= this.hwnd;
-
-    if (hwnd != null) {
-      ShowWindow(hwnd, SW_SHOWNORMAL);
-      UpdateWindow(hwnd);
-    }
-  }
-
   Future<void>? _loadCall;
 
   Future<void> ensureLoaded() => _loadCall ??= _callLoad();
@@ -392,25 +397,9 @@ class Window {
   /// - Note that Win32 API [build] and [repaint] won't allow any asynchronous call ([Future]s).
   Future<void> load() async {}
 
-  final dimension = calloc<RECT>();
-
-  void fetchDimension({int? hwnd}) {
-    hwnd ??= this.hwnd;
-
-    if (hwnd != null) {
-      GetClientRect(hwnd, dimension);
-    }
-  }
-
-  int get dimensionWidth => dimension.ref.right - dimension.ref.left;
-
-  int get dimensionHeight => dimension.ref.bottom - dimension.ref.top;
-
-  bool callBuild({int? hwnd, int? hdc}) {
+  bool callBuild({int? hdc}) {
     ensureLoaded();
-
-    hwnd ??= this.hwnd;
-    if (hwnd == null) return false;
+    final hwnd = this.hwnd;
 
     if (hdc == null) {
       final hdc = GetDC(hwnd);
@@ -424,7 +413,7 @@ class Window {
   }
 
   void _callBuildImpl(int hwnd, int hdc) {
-    fetchDimension(hwnd: hwnd);
+    fetchDimension();
     build(hwnd, hdc);
   }
 
@@ -434,11 +423,10 @@ class Window {
     SetWindowExtEx(hdc, 1, 1, nullptr);
   }
 
-  bool callRepaint({int? hwnd, int? hdc}) {
+  bool callRepaint({int? hdc}) {
     ensureLoaded();
 
-    hwnd ??= this.hwnd;
-    if (hwnd == null) return false;
+    final hwnd = this.hwnd;
 
     if (hdc == null) {
       final ps = calloc<PAINTSTRUCT>();
@@ -454,12 +442,36 @@ class Window {
   }
 
   void _callRepaintImpl(int hwnd, int hdc) {
-    fetchDimension(hwnd: hwnd);
+    fetchDimension();
     repaint(hwnd, hdc);
   }
 
   void repaint(int hwnd, int hdc) {
     drawBG(hdc);
+  }
+
+  int sendMessage(int msg, int wParam, int lParam) {
+    final hwnd = this.hwnd;
+    return SendMessage(hwnd, msg, wParam, lParam);
+  }
+
+  final dimension = calloc<RECT>();
+
+  void fetchDimension() {
+    final hwnd = this.hwnd;
+    GetClientRect(hwnd, dimension);
+  }
+
+  int get dimensionWidth => dimension.ref.right - dimension.ref.left;
+
+  int get dimensionHeight => dimension.ref.bottom - dimension.ref.top;
+
+  void show() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    ShowWindow(hwnd, SW_SHOWNORMAL);
+    UpdateWindow(hwnd);
   }
 
   void drawBG(int hdc) {
@@ -503,20 +515,18 @@ class Window {
 
   final Map<String, int> _imagesCached = {};
 
-  int loadImageCached(int hwnd, String imgPath, int imgWidth, int imgHeight) {
-    return _imagesCached[imgPath] ??=
-        loadImage(hwnd, imgPath, imgWidth, imgHeight);
+  int loadImageCached(String imgPath, int imgWidth, int imgHeight) {
+    return _imagesCached[imgPath] ??= loadImage(imgPath, imgWidth, imgHeight);
   }
 
-  int loadImage(int hwnd, String imgPath, int imgWidth, int imgHeight) {
+  int loadImage(String imgPath, int imgWidth, int imgHeight) {
     final hBitmap = LoadImage(NULL, imgPath.toNativeUtf16(), IMAGE_BITMAP,
         imgWidth, imgHeight, LR_LOADFROMFILE);
 
     return hBitmap;
   }
 
-  void drawImage(
-      int hwnd, int hdc, int hBitmap, int x, int y, int width, int height) {
+  void drawImage(int hdc, int hBitmap, int x, int y, int width, int height) {
     final hMemDC = CreateCompatibleDC(hdc);
 
     SelectObject(hMemDC, hBitmap);
@@ -526,26 +536,25 @@ class Window {
     DeleteObject(hMemDC);
   }
 
-  void setIcon(int hwnd, String iconPath,
-      {bool small = true, bool big = true}) {
+  void setIcon(String iconPath, {bool small = true, bool big = true}) {
     var iconPathPtr = iconPath.toNativeUtf16();
 
     if (small) {
       var hIcon =
           LoadImage(NULL, iconPathPtr, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
-      SendMessage(hwnd, WM_SETICON, ICON_SMALL, hIcon);
+      sendMessage(WM_SETICON, ICON_SMALL, hIcon);
     }
 
     if (big) {
       var hIcon =
           LoadImage(NULL, iconPathPtr, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-      SendMessage(hwnd, WM_SETICON, ICON_BIG, hIcon);
+      sendMessage(WM_SETICON, ICON_BIG, hIcon);
     }
   }
 
   void processCommand(int hwnd, int hdc, int lParam) {
     for (var child in _children) {
-      if (child.hwnd == lParam) {
+      if (child._hwnd == lParam) {
         child.processCommand(hwnd, hdc, lParam);
       }
     }
@@ -553,7 +562,7 @@ class Window {
 
   @override
   String toString() {
-    return 'Window#$hwnd{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
+    return 'Window#$_hwnd{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
   }
 }
 
