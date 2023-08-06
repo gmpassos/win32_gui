@@ -1,10 +1,13 @@
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
+import 'package:logging/logging.dart' as logging;
 import 'package:win32/win32.dart';
 
-import 'win32_constants_extra.dart';
-import 'win32_gui_base.dart';
+import '../win32_constants_extra.dart';
+import '../win32_gui_base.dart';
+
+final _log = logging.Logger('RichEdit');
 
 class RichEdit extends ChildWindow {
   static final int richEditLoadedVersion = WindowClass.loadRichEditLibrary();
@@ -61,22 +64,61 @@ class RichEdit extends ChildWindow {
     }
   }
 
-  int setTextColor(hdc, int color) => SetTextColor(hdc, color);
+  void log(logging.Level level, String method, [String Function()? msg]) =>
+      _log.log(level, () {
+        if (msg != null) {
+          var msgStr = msg();
+          return '[hwnd: $hwndIfCreated] $method> $msgStr';
+        } else {
+          return '[hwnd: $hwndIfCreated] $method()';
+        }
+      });
 
-  int setBkColor(int color) => sendMessage(EM_SETBKGNDCOLOR, 0, color);
+  void logInfo(String method, [String Function()? msg]) =>
+      log(logging.Level.INFO, method, msg);
 
-  int setAutoURLDetect(bool autoDetect) =>
-      sendMessage(EM_AUTOURLDETECT, autoDetect ? 1 : 0, 0);
+  void logWarning(String method, [String Function()? msg]) =>
+      log(logging.Level.WARNING, method, msg);
 
-  int setCursorToBottom() => sendMessage(EM_SETSEL, -2, -1);
+  void logSevere(String method, [String Function()? msg]) =>
+      log(logging.Level.SEVERE, method, msg);
 
-  bool scrollVTo(int pos) => sendMessage(WM_VSCROLL, pos, 0) == 0;
+  int setTextColor(int hdc, int color) {
+    logInfo('setTextColor', () => 'hdc: $hdc, color: $color');
+    return SetTextColor(hdc, color);
+  }
+
+  int setBkColor(int color) {
+    logInfo('setBkColor', () => 'color: $color');
+    return sendMessage(EM_SETBKGNDCOLOR, 0, color);
+  }
+
+  int setAutoURLDetect(bool autoDetect) {
+    logInfo('setAutoURLDetect', () => 'autoDetect: $autoDetect');
+    return sendMessage(EM_AUTOURLDETECT, autoDetect ? 1 : 0, 0);
+  }
+
+  int setCursorToBottom() {
+    logInfo('setCursorToBottom');
+    return sendMessage(EM_SETSEL, -2, -1);
+  }
+
+  bool scrollVTo(int pos) {
+    logInfo('scrollVTo', () => 'pos: $pos');
+    return sendMessage(WM_VSCROLL, pos, 0) == 0;
+  }
 
   bool scrollHTo(int pos) => sendMessage(WM_HSCROLL, pos, 0) == 0;
 
-  bool scrollToTop() => scrollVTo(SB_TOP);
+  bool scrollToTop() {
+    logInfo('scrollToTop');
+    return scrollVTo(SB_TOP);
+  }
 
-  bool scrollToBottom() => scrollVTo(SB_BOTTOM);
+  bool scrollToBottom() {
+    logInfo('scrollToBottom');
+    return scrollVTo(SB_BOTTOM);
+  }
 
   Pointer<CHARFORMAT> getCharFormat(int hwnd, [int range = SCF_SELECTION]) {
     final cf = calloc<CHARFORMAT>();
@@ -93,14 +135,20 @@ class RichEdit extends ChildWindow {
     print(cf.ref.bPitchAndFamily);
     print(cf.ref.szFaceName);
 
+    logInfo('getCharFormat', () => 'range: $range');
+
     return cf;
   }
 
-  bool setCharFormat(Pointer<CHARFORMAT> cf, [int range = SCF_SELECTION]) =>
-      sendMessage(EM_SETCHARFORMAT, range, cf.address) == 1;
+  bool setCharFormat(Pointer<CHARFORMAT> cf, [int range = SCF_SELECTION]) {
+    logInfo('setCharFormat', () => 'range: $range, cf: #${cf.address}');
+    return sendMessage(EM_SETCHARFORMAT, range, cf.address) == 1;
+  }
 
-  int replaceSel(Pointer<Utf16> str) =>
-      sendMessage(EM_REPLACESEL, 0, str.address);
+  int replaceSel(String text) {
+    logInfo('replaceSel', () => 'text: <<$text>>');
+    return sendMessage(EM_REPLACESEL, 0, text.toNativeUtf16().address);
+  }
 
   /// Append a text with different colors.
   void appendText(String text,
@@ -140,10 +188,8 @@ class RichEdit extends ChildWindow {
 
     setCharFormat(cf);
 
-    var str = text.toNativeUtf16();
-
     setCursorToBottom();
-    replaceSel(str);
+    replaceSel(text);
 
     if (scrollToBottom) {
       this.scrollToBottom();

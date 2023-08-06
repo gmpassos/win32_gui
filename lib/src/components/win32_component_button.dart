@@ -1,6 +1,9 @@
+import 'package:logging/logging.dart' as logging;
 import 'package:win32/win32.dart';
 
-import 'win32_gui_base.dart';
+import '../win32_gui_base.dart';
+
+final _log = logging.Logger('Win32:Button');
 
 class Button extends ChildWindow {
   static final buttonWindowClass = WindowClass.predefined(
@@ -31,6 +34,8 @@ class Button extends ChildWindow {
 
   @override
   void processCommand(int hwnd, int hdc, int lParam) {
+    _log.info('[hwnd: $hwnd, hdc: $hdc] processCommand> lParam: $lParam');
+
     final onCommand = this.onCommand;
 
     if (onCommand != null) {

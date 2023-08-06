@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:win32_gui/win32_gui_logging.dart';
 import 'package:win32_gui/win32_gui.dart';
 
 Future<void> main() async {
+  logToConsole();
+
   var editorClass = WindowClassColors(
     textColor: RGB(0, 0, 0),
     bgColor: RGB(128, 128, 128),

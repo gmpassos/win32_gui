@@ -3,8 +3,13 @@ import 'dart:ffi';
 import 'dart:math' as math;
 
 import 'package:ffi/ffi.dart';
+import 'package:logging/logging.dart' as logging;
 import 'package:resource_portable/resource.dart';
 import 'package:win32/win32.dart';
+
+import 'win32_constants.dart';
+
+final _logWindow = logging.Logger('Win32:Window');
 
 final hInstance = GetModuleHandle(nullptr);
 
@@ -90,6 +95,9 @@ class WindowClass {
 
     // var name = Win32Constants.wmByID[uMsg];
     // print('winProc[default]> uMsg: $uMsg ; name: $name');
+
+    _logWindow.info(
+        'windowProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam, windowClass: ${windowClass.className}');
 
     switch (uMsg) {
       case WM_CREATE:
