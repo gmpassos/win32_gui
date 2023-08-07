@@ -50,8 +50,15 @@ void main() {
     print('-- Checking `mainWindow.isDestroyed`');
     expect(mainWindow.isDestroyed, isTrue);
 
+    mainWindow.quit(0);
+
+    print('-- Test finished.');
+
     // Ensure that the `test -c exe` exits:
-    Future.delayed(Duration(seconds: 15), () => exit(0));
+    Future.delayed(Duration(seconds: 15), () {
+      print('** Forcing exit(0).');
+      exit(0);
+    });
   });
 }
 
