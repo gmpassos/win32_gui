@@ -76,6 +76,10 @@ class WindowClass {
   /// The tile color of this [Window] frame.
   final int? titleColor;
 
+  /// If `true` and uses [windowProcDefault], it will call [getWindowWithHWnd]
+  /// passing `global: true`.
+  final bool lookupWindowGlobally;
+
   /// Returns `true` if it's a custom [WindowClass].
   final bool custom;
 
@@ -86,7 +90,8 @@ class WindowClass {
       this.isFrame = true,
       this.bgColor,
       this.useDarkMode = false,
-      this.titleColor})
+      this.titleColor,
+      this.lookupWindowGlobally = true})
       : custom = true;
 
   WindowClass._predefined(this.className, this.bgColor)
@@ -94,7 +99,8 @@ class WindowClass {
         windowProc = nullptr,
         isFrame = false,
         useDarkMode = false,
-        titleColor = null;
+        titleColor = null,
+        lookupWindowGlobally = false;
 
   static final Map<String, WindowClass> _predefinedClasses = {};
 
@@ -130,6 +136,9 @@ class WindowClass {
     _logWindow.info(
         'windowProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam, windowClass: ${windowClass.className}');
 
+    final windowGlobal = windowClass.lookupWindowGlobally;
+    Window? window;
+
     switch (uMsg) {
       case WM_CREATE:
         {
@@ -153,37 +162,35 @@ class WindowClass {
             );
           }
 
-          for (var w in windowClass._windows) {
-            if (w._hwnd == hwnd) {
-              w.callBuild(hdc: hdc);
-            }
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          if (window != null) {
+            window.callBuild(hdc: hdc);
           }
 
           ReleaseDC(hwnd, hdc);
         }
       case WM_PAINT:
         {
-          final ps = calloc<PAINTSTRUCT>();
-          final hdc = BeginPaint(hwnd, ps);
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          if (window != null) {
+            final ps = calloc<PAINTSTRUCT>();
+            final hdc = BeginPaint(hwnd, ps);
 
-          for (var w in windowClass._windows) {
-            if (w._hwnd == hwnd) {
-              w.callRepaint(hdc: hdc);
-            }
+            window.callRepaint(hdc: hdc);
+
+            EndPaint(hwnd, ps);
+            free(ps);
           }
-
-          EndPaint(hwnd, ps);
-          free(ps);
         }
       case WM_COMMAND:
         {
-          for (var w in windowClass._windows) {
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          if (window != null) {
             final hdc = GetDC(hwnd);
-            w.processCommand(hwnd, hdc, lParam);
+            window.processCommand(hwnd, hdc, lParam);
             ReleaseDC(hwnd, hdc);
           }
         }
-
       case WM_CTLCOLORSTATIC:
         {
           result = _setColors(wParam, staticColors);
@@ -198,16 +205,28 @@ class WindowClass {
         }
       case WM_DESTROY:
         {
-          PostQuitMessage(0);
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          window?.processDestroy(wParam, lParam);
         }
       case WM_NCDESTROY:
         {
-          var w = windowClass._windows.firstWhereOrNull((w) => w._hwnd == hwnd);
-          w?._notifyDestroyed();
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          window?._notifyDestroyed();
         }
       default:
         {
-          result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+          int? processed;
+
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          if (window != null) {
+            processed = window.processMessage(hwnd, uMsg, wParam, lParam);
+          }
+
+          if (processed != null) {
+            result = processed;
+          } else {
+            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+          }
         }
     }
 
@@ -233,18 +252,40 @@ class WindowClass {
     return CreateSolidBrush(bgColor ?? textColor ?? RGB(255, 255, 255));
   }
 
+  static final Set<Window> _allWindows = {};
+
+  /// Returns all registered [Window] instances.
+  static Set<Window> get allWindows => UnmodifiableSetView(_allWindows);
+
   final Set<Window> _windows = {};
 
   /// Returns the [Window] instances registered with this [WindowClass].
   Set<Window> get windows => UnmodifiableSetView(_windows);
 
+  /// Returns a [Window] with [hwnd] that was registered with this [WindowClass].
+  /// - See [windows].
+  /// - If [global] is `true` also looks at [allWindows].
+  Window? getWindowWithHWnd(int hwnd, {bool global = false}) {
+    var w = _windows.firstWhereOrNull((w) => w._hwnd == hwnd);
+    if (w == null && global) {
+      w = _allWindows.firstWhereOrNull((w) => w._hwnd == hwnd);
+    }
+    return w;
+  }
+
   /// Registers a [window] with this [WindowClass].
   /// - Called by [Window] constructor.
-  bool registerWindow(Window window) => _windows.add(window);
+  bool registerWindow(Window window) {
+    _allWindows.add(window);
+    return _windows.add(window);
+  }
 
   /// Unregisters a [window] with this [WindowClass].
   /// - Called after [Window.onDestroy].
-  bool unregisterWindow(Window window) => _windows.remove(window);
+  bool unregisterWindow(Window window) {
+    _allWindows.remove(window);
+    return _windows.remove(window);
+  }
 
   bool? _registered;
 
@@ -634,6 +675,12 @@ class Window {
     DestroyWindow(hwnd);
   }
 
+  /// Sends quit message with [exitCode].
+  /// - Calls Win32 [PostQuitMessage].
+  void quit([int exitCode = 0]) {
+    PostQuitMessage(exitCode);
+  }
+
   /// Paint operation: draws this [Window] background.
   void drawBG(int hdc, {int? bgColor}) {
     bgColor ??= this.bgColor;
@@ -753,6 +800,14 @@ class Window {
       }
     }
   }
+
+  /// Processes a [WM_DESTROY] message.
+  void processDestroy(int wParam, int lParam) {}
+
+  /// Processes a message.
+  /// - Called by [WindowClass.windowProcDefault] when the messages doesn't have a default processor.
+  /// - Should return a value if this messages was processed, or `null` to send to [DefWindowProc].
+  int? processMessage(int hwnd, int uMsg, int wParam, int lParam) => null;
 
   final StreamController<Window> _onDestroy = StreamController();
 
