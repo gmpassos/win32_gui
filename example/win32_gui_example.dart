@@ -26,11 +26,11 @@ Future<void> main() async {
   mainWindow.show();
 
   mainWindow.onDestroy.listen((window) {
-    print('-- Window Destroyed> $window');
+    print('-- Main Window Destroyed> $window');
     exit(0);
   });
 
-  print('-- Window.runMessageLoop...');
+  print('-- Window.runMessageLoopAsync...');
   await Window.runMessageLoopAsync();
 }
 
