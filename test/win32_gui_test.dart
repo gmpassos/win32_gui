@@ -1,4 +1,6 @@
 @TestOn('windows')
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:win32_gui/win32_gui.dart';
 import 'package:win32_gui/win32_gui_logging.dart';
@@ -47,6 +49,9 @@ void main() {
 
     print('-- Checking `mainWindow.isDestroyed`');
     expect(mainWindow.isDestroyed, isTrue);
+
+    // Ensure that the `test -c exe` exits:
+    Future.delayed(Duration(seconds: 15), () => exit(0));
   });
 }
 
