@@ -27,22 +27,19 @@ LoggerHandler _resolveLoggerHandler([LoggerHandler? loggerHandler]) {
   return loggerHandler ?? LoggerHandler.root;
 }
 
-void logAllTo(
-    {MessageLogger? messageLogger,
-    Object? logDestiny,
-    bool includeDBLogs = false}) {
+/// Logs all [Logging] messages to [messageLogger].
+void logAllTo({MessageLogger? messageLogger, Object? logDestiny}) {
   var loggerHandler = _resolveLoggerHandler();
-  loggerHandler.logAllTo(
-      messageLogger: messageLogger,
-      logDestiny: logDestiny,
-      includeDBLogs: includeDBLogs);
+  loggerHandler.logAllTo(messageLogger: messageLogger, logDestiny: logDestiny);
 }
 
+/// Logs all [Logging] messages to console.
 void logToConsole({bool enabled = true}) {
   var loggerHandler = _resolveLoggerHandler();
   loggerHandler.logToConsole(enabled: enabled);
 }
 
+/// Logs error [Logging] messages to [messageLogger].
 void logErrorTo(
     {MessageLogger? messageLogger,
     Object? logDestiny,
@@ -53,6 +50,7 @@ void logErrorTo(
 }
 
 extension LoggerExntesion on logging.Logger {
+  /// Returns a [logging.Logger] handler.
   LoggerHandler get handler {
     var handler = _loggerHandlers[this];
     if (handler == null) {
@@ -63,10 +61,14 @@ extension LoggerExntesion on logging.Logger {
   }
 }
 
+/// A logging message function.
 typedef MessageLogger = void Function(logging.Level level, String message);
+
+/// A logging messages block function.
 typedef MessagesBlockLogger = Future<void> Function(
     logging.Level level, List<String> messages);
 
+/// A [logging.Logger] handler.
 class LoggerHandler {
   static String truncateString(String s, int limit) {
     if (s.length > limit) {
@@ -94,6 +96,7 @@ class LoggerHandler {
     return s != null ? '$s' : '?';
   }
 
+  /// The parent [LoggerHandler].
   LoggerHandler? get parent {
     var l = logger.parent;
     if (l == null) return null;
@@ -102,11 +105,9 @@ class LoggerHandler {
     return handler;
   }
 
+  /// The [logging.Logger] name.
   String loggerName(logging.LogRecord msg) {
     var name = msg.loggerName;
-    if (name == 'hotreloader') {
-      name = 'APIHotReload';
-    }
     return name;
   }
 
@@ -143,7 +144,7 @@ class LoggerHandler {
 
   void _logRootMsg(logging.LogRecord msg) {
     var level = msg.level;
-    var logMsg = _buildMsg(msg);
+    var logMsg = buildMessageText(msg);
 
     if (level == logging.Level.SEVERE) {
       logErrorMessage(level, logMsg);
@@ -154,7 +155,8 @@ class LoggerHandler {
     }
   }
 
-  String _buildMsg(logging.LogRecord msg) {
+  /// Builds a message text to be logged.
+  String buildMessageText(logging.LogRecord msg) {
     var time = '${msg.time}'.padRight(26, '0');
     var levelName = '[${msg.level.name}]'.padRight(9);
 
@@ -191,11 +193,14 @@ class LoggerHandler {
     return logMsg.toString();
   }
 
+  /// Prints [message] to [stdout] or [stderr].
   void printMessage(logging.Level level, String message) {
     var out = (level < logging.Level.SEVERE ? stdout : stderr);
     out.write(message);
   }
 
+  /// Logs all messages of this [logger].
+  /// - Sets [logger.level] to `ALL`.
   void logAll() {
     logging.hierarchicalLoggingEnabled = true;
     logger.level = logging.Level.ALL;
@@ -205,15 +210,14 @@ class LoggerHandler {
 
   static MessageLogger? getLogAllTo() => _allMessageLogger;
 
-  void logAllTo(
-      {MessageLogger? messageLogger,
-      Object? logDestiny,
-      bool includeDBLogs = false}) {
+  /// Logs all messages of this [logger] to [messageLogger] or to [logDestiny].
+  void logAllTo({MessageLogger? messageLogger, Object? logDestiny}) {
     messageLogger ??= resolveLogDestiny(logDestiny);
 
     _allMessageLogger = messageLogger;
   }
 
+  /// Logs all messages of this [logger] to console.
   void logToConsole({bool enabled = true}) => _logToConsoleImpl(enabled);
 
   static bool _logToConsole = false;
@@ -226,12 +230,14 @@ class LoggerHandler {
 
   MessageLogger? getLogErrorTo() => _errorMessageLogger;
 
+  /// Logs error messages of this [logger] to [messageLogger] or to [logDestiny].
   void logErrorTo({MessageLogger? messageLogger, Object? logDestiny}) {
     messageLogger ??= resolveLogDestiny(logDestiny);
 
     _errorMessageLogger = messageLogger;
   }
 
+  /// Logs all [message].
   void logAllMessage(logging.Level level, String message) {
     var messageLogger = _allMessageLogger;
 
@@ -240,6 +246,7 @@ class LoggerHandler {
     }
   }
 
+  /// Logs error [message].
   void logErrorMessage(logging.Level level, String message) {
     var messageLogger = _errorMessageLogger;
 
@@ -254,6 +261,7 @@ class LoggerHandler {
     }
   }
 
+  /// Resolves [logDestiny] to a [MessageLogger].
   MessageLogger? resolveLogDestiny(final Object? logDestiny) {
     if (logDestiny == null) return null;
 
@@ -284,5 +292,10 @@ class LoggerHandler {
     }
 
     return null;
+  }
+
+  @override
+  String toString() {
+    return 'LoggerHandler{id: $id, logger: $logger}';
   }
 }
