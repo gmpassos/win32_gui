@@ -19,7 +19,7 @@ Win32 API GUI in Object-Oriented style with some helpers. Uses package [win32] a
 
 [Example](https://github.com/gmpassos/win32_gui/blob/master/example/win32_gui_example.dart) screenshot:
 
-<img width="640" src="https://raw.githubusercontent.com/gmpassos/win32_gui/master/example/example-screenshot.jpg" />
+<img alt="Example screenshot" width="640" src="https://raw.githubusercontent.com/gmpassos/win32_gui/master/example/example-screenshot.png" />
 
 ## Usage
 

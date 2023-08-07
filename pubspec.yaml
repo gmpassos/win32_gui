@@ -5,7 +5,7 @@ repository: https://github.com/gmpassos/win32_gui
 
 screenshots:
   - description: 'Examples screenshot.'
-    path: example/example-screenshot.jpg
+    path: example/example-screenshot.png
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
