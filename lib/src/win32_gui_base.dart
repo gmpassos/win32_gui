@@ -37,26 +37,6 @@ class WindowClassColors {
 
 /// A [Window] class.
 class WindowClass {
-  static int? _loadedRichEditLibrary;
-
-  /// Loads `RICHEDIT` library (.dll), and returns its version.
-  static int loadRichEditLibrary() =>
-      _loadedRichEditLibrary ??= _loadRichEditLibraryImpl();
-
-  static int _loadRichEditLibraryImpl() {
-    try {
-      DynamicLibrary.open('RICHED20.DLL');
-      return 2;
-    } catch (_) {}
-
-    try {
-      DynamicLibrary.open('RICHED32.DLL');
-      return 1;
-    } catch (_) {}
-
-    return 0;
-  }
-
   /// The class name of this [Window] Class.
   final String className;
 

@@ -9,8 +9,32 @@ import '../win32_gui_base.dart';
 
 final _log = logging.Logger('RichEdit');
 
+/// A [ChildWindow] of class `richedit`.
+/// See [loadRichEditLibrary].
 class RichEdit extends ChildWindow {
-  static final int richEditLoadedVersion = WindowClass.loadRichEditLibrary();
+  static int? _loadedRichEditLibrary;
+
+  /// Loads `RICHEDIT` library (.dll), and returns its version.
+  static int loadRichEditLibrary() =>
+      _loadedRichEditLibrary ??= _loadRichEditLibraryImpl();
+
+  static int _loadRichEditLibraryImpl() {
+    try {
+      DynamicLibrary.open('RICHED20.DLL');
+      return 2;
+    } catch (_) {}
+
+    try {
+      DynamicLibrary.open('RICHED32.DLL');
+      return 1;
+    } catch (_) {}
+
+    return 0;
+  }
+
+  /// Returns the `RICHEDIT` loaded version.
+  /// See [loadRichEditLibrary].
+  static final int richEditLoadedVersion = loadRichEditLibrary();
 
   static final windowClassEdit = WindowClass.predefined(
     className: 'edit',
@@ -26,6 +50,7 @@ class RichEdit extends ChildWindow {
 
   int _version = -1;
 
+  /// The version of the loaded `RICHEDIT` library.
   int get version => _version;
 
   RichEdit(
@@ -64,6 +89,7 @@ class RichEdit extends ChildWindow {
     }
   }
 
+  /// Logs at `RichEdit` [logging.Logger].
   void log(logging.Level level, String method, [String Function()? msg]) =>
       _log.log(level, () {
         if (msg != null) {
@@ -74,82 +100,103 @@ class RichEdit extends ChildWindow {
         }
       });
 
+  /// `INFO` [log]
   void logInfo(String method, [String Function()? msg]) =>
       log(logging.Level.INFO, method, msg);
 
+  /// `WARNING` [log]
   void logWarning(String method, [String Function()? msg]) =>
       log(logging.Level.WARNING, method, msg);
 
+  /// `SEVERE` [log]
   void logSevere(String method, [String Function()? msg]) =>
       log(logging.Level.SEVERE, method, msg);
 
+  /// Sets the text color of this [RichEdit].
+  /// - Calls [SetTextColor].
   int setTextColor(int hdc, int color) {
     logInfo('setTextColor', () => 'hdc: $hdc, color: $color');
     return SetTextColor(hdc, color);
   }
 
+  /// Sets the background color of this [RichEdit].
+  /// - Calls [sendMessage] [EM_SETBKGNDCOLOR].
   int setBkColor(int color) {
     logInfo('setBkColor', () => 'color: $color');
     return sendMessage(EM_SETBKGNDCOLOR, 0, color);
   }
 
+  /// Sets this [RichEdit] to auto detect URLs.
+  /// - Calls [sendMessage] [EM_AUTOURLDETECT].
   int setAutoURLDetect(bool autoDetect) {
     logInfo('setAutoURLDetect', () => 'autoDetect: $autoDetect');
     return sendMessage(EM_AUTOURLDETECT, autoDetect ? 1 : 0, 0);
   }
 
+  /// Sets this [RichEdit] cursor to bottom.
+  /// - Calls [sendMessage] [EM_SETSEL].
   int setCursorToBottom() {
     logInfo('setCursorToBottom');
     return sendMessage(EM_SETSEL, -2, -1);
   }
 
+  /// Scrolls vertically this [RichEdit] to [pos].
+  /// - Calls [sendMessage] [WM_VSCROLL].
   bool scrollVTo(int pos) {
     logInfo('scrollVTo', () => 'pos: $pos');
     return sendMessage(WM_VSCROLL, pos, 0) == 0;
   }
 
+  /// Scrolls horizontally this [RichEdit] to [pos].
+  /// - Calls [sendMessage] [WM_HSCROLL].
   bool scrollHTo(int pos) => sendMessage(WM_HSCROLL, pos, 0) == 0;
 
+  /// Scrolls this [RichEdit] to top.
+  /// - Calls [scrollVTo] [SB_TOP].
   bool scrollToTop() {
     logInfo('scrollToTop');
     return scrollVTo(SB_TOP);
   }
 
+  /// Scrolls horizontally this [RichEdit] to bottom.
+  /// - Calls [scrollVTo] [SB_BOTTOM].
   bool scrollToBottom() {
     logInfo('scrollToBottom');
     return scrollVTo(SB_BOTTOM);
   }
 
-  Pointer<CHARFORMAT> getCharFormat(int hwnd, [int range = SCF_SELECTION]) {
+  /// Gets the `CHARFORMAT` of this [RichEdit].
+  /// - Calls [sendMessage] [EM_GETCHARFORMAT].
+  Pointer<CHARFORMAT> getCharFormat([int range = SCF_SELECTION]) {
     final cf = calloc<CHARFORMAT>();
-
-    SendMessage(hwnd, EM_GETCHARFORMAT, range, cf.address);
-
+    sendMessage(EM_GETCHARFORMAT, range, cf.address);
     logInfo('getCharFormat', () => 'range: $range');
-
     return cf;
   }
 
+  /// Sets the [CHARFORMAT] of this [RichEdit].
+  /// - Calls [sendMessage] [EM_SETCHARFORMAT].
   bool setCharFormat(Pointer<CHARFORMAT> cf, [int range = SCF_SELECTION]) {
     logInfo('setCharFormat', () => 'range: $range, cf: #${cf.address}');
     return sendMessage(EM_SETCHARFORMAT, range, cf.address) == 1;
   }
 
+  /// Replaces the selection with [text].
+  /// - Calls [sendMessage] [EM_REPLACESEL].
   int replaceSel(String text) {
     logInfo('replaceSel', () => 'text: <<$text>>');
     return sendMessage(EM_REPLACESEL, 0, text.toNativeUtf16().address);
   }
 
-  /// Append a text with different colors.
+  /// Append a text with different colors to this [RichEdit].
+  /// - See: [getCharFormat], [setCharFormat], [setCursorToBottom], [replaceSel], [scrollToBottom].
   void appendText(String text,
       {int? color,
       bool bold = false,
       bool italic = false,
       bool underline = false,
       bool scrollToBottom = true}) {
-    final hwnd = this.hwnd;
-
-    final cf = getCharFormat(hwnd);
+    final cf = getCharFormat();
     final cfRef = cf.ref;
 
     cfRef.cbSize = sizeOf<CHARFORMAT>();
@@ -186,6 +233,7 @@ class RichEdit extends ChildWindow {
     }
   }
 
+  /// Alias to [appendText] passing [textFormatted] attributes.
   void appendTextFormatted(TextFormatted textFormatted,
           {bool scrollToBottom = true}) =>
       appendText(textFormatted.text,
@@ -195,6 +243,7 @@ class RichEdit extends ChildWindow {
           color: textFormatted.color,
           scrollToBottom: scrollToBottom);
 
+  /// Alias to [appendTextFormatted] passing all [textFormatted] elements.
   int appendAllTextFormatted(Iterable<TextFormatted> textFormatted,
       {bool scrollToBottom = true}) {
     var list = textFormatted.toList();
@@ -214,6 +263,7 @@ class RichEdit extends ChildWindow {
     return list.length;
   }
 
+  /// Sets this [RichEdit] text with [textFormatted] elements.
   void setTextFormatted(Iterable<TextFormatted> textFormatted,
       {bool scrollToBottom = true}) {
     setWindowText('');

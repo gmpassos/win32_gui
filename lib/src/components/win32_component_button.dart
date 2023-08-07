@@ -5,11 +5,13 @@ import '../win32_gui_base.dart';
 
 final _log = logging.Logger('Win32:Button');
 
+/// A [ChildWindow] of class `button`.
 class Button extends ChildWindow {
   static final buttonWindowClass = WindowClass.predefined(
     className: 'button',
   );
 
+  /// The command of this button when clicked.
   final void Function(int lParam)? onCommand;
 
   Button(
@@ -32,6 +34,8 @@ class Button extends ChildWindow {
           height: height,
         );
 
+  /// Calls [onCommand].
+  /// See [super.processCommand].
   @override
   void processCommand(int hwnd, int hdc, int lParam) {
     _log.info('[hwnd: $hwnd, hdc: $hdc] processCommand> lParam: $lParam');
