@@ -26,7 +26,7 @@ Future<void> main() async {
   mainWindow.show();
 
   print('-- Window.runMessageLoop...');
-  Window.runMessageLoop();
+  await Window.runMessageLoopAsync();
 }
 
 class MainWindow extends Window {

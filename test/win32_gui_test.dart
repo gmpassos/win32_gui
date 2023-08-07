@@ -26,8 +26,11 @@ void main() {
     print('-- mainWindow.show...');
     mainWindow.show();
 
-    print('-- Window.runMessageLoop...');
-    Window.runMessageLoop(timeout: Duration(seconds: 5));
+    print('-- Window.runMessageLoopAsync...');
+    var messages =
+        await Window.runMessageLoopAsync(timeout: Duration(seconds: 5));
+
+    print('-- Window.runMessageLoop finished> messages: $messages');
   });
 }
 

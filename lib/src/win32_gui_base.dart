@@ -256,16 +256,8 @@ class WindowClass {
   }
 }
 
-class Window {
-  static void runMessageLoop({Duration? timeout}) {
-    if (timeout == null) {
-      _runMessageLoopNonStop();
-    } else {
-      _runMessageLoopTimeout(timeout);
-    }
-  }
-
-  static void _runMessageLoopNonStop() {
+class WindowMessageLoop {
+  static void runLoop() {
     final msg = calloc<MSG>();
     while (GetMessage(msg, NULL, 0, 0) != 0) {
       TranslateMessage(msg);
@@ -273,22 +265,71 @@ class Window {
     }
   }
 
-  static void _runMessageLoopTimeout(Duration timeout) {
+  static Future<int> runLoopAsync(
+      {Duration? timeout, int maxConsecutiveDispatches = 100}) async {
+    maxConsecutiveDispatches = maxConsecutiveDispatches.clamp(2, 1000);
+
     final initTime = DateTime.now();
+    var yieldMS = Duration(milliseconds: 1);
 
     final msg = calloc<MSG>();
-    while (GetMessage(msg, NULL, 0, 0) != 0) {
-      TranslateMessage(msg);
-      DispatchMessage(msg);
 
-      var elapsedTime = DateTime.now().difference(initTime);
-      var remainingTime = timeout - elapsedTime;
+    var totalMsgCount = 0;
+    var noMsgCount = 0;
+    var msgCount = 0;
 
-      if (remainingTime.inMilliseconds <= 0) {
-        break;
+    while (true) {
+      var got = PeekMessage(msg, NULL, 0, 0, 1);
+
+      if (got != 0) {
+        totalMsgCount++;
+        noMsgCount = 0;
+        ++msgCount;
+
+        TranslateMessage(msg);
+        DispatchMessage(msg);
+
+        if (msgCount > 0 && msgCount % maxConsecutiveDispatches == 0) {
+          if (initTime.timeOut(timeout)) break;
+
+          await Future.delayed(yieldMS);
+        }
+      } else {
+        ++noMsgCount;
+        msgCount = 0;
+
+        if (noMsgCount > 1) {
+          if (initTime.timeOut(timeout)) break;
+
+          await Future.delayed(yieldMS);
+        }
       }
     }
+
+    return totalMsgCount;
   }
+}
+
+extension _DateTimeExtension on DateTime {
+  Duration get elapsedTime => DateTime.now().difference(this);
+
+  Duration remainingTime(Duration timeout) => timeout - elapsedTime;
+
+  bool hasRemainingTime(Duration? timeout) {
+    if (timeout == null) return true;
+    return remainingTime(timeout).inMilliseconds > 0;
+  }
+
+  bool timeOut(Duration? timeout) => !hasRemainingTime(timeout);
+}
+
+class Window {
+  static void runMessageLoop() => WindowMessageLoop.runLoop();
+
+  static Future<int> runMessageLoopAsync(
+          {Duration? timeout, int maxConsecutiveDispatches = 100}) =>
+      WindowMessageLoop.runLoopAsync(
+          timeout: timeout, maxConsecutiveDispatches: maxConsecutiveDispatches);
 
   static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
 
