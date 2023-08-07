@@ -20,10 +20,99 @@ Win32 API GUI in Object-Oriented style with some helpers. Uses package [win32] a
 Here's a simple Hello World window:
 
 ```dart
+import 'dart:io';
+
 import 'package:win32_gui/win32_gui.dart';
 
-void main() {
+Future<void> main() async {
+  var editorClass = WindowClassColors(
+    textColor: RGB(0, 0, 0),
+    bgColor: RGB(128, 128, 128),
+  );
+
+  WindowClass.editColors = editorClass;
+  WindowClass.staticColors = editorClass;
+
+  var mainWindow = MainWindow(
+    width: 640,
+    height: 480,
+  );
+
+  print('-- mainWindow.ensureLoaded...');
+  await mainWindow.ensureLoaded();
+
+  print('-- mainWindow.show...');
+  mainWindow.show();
+
+  mainWindow.onDestroy.listen((window) {
+    print('-- Window Destroyed> $window');
+    exit(0);
+  });
+
+  print('-- Window.runMessageLoopAsync...');
+  await Window.runMessageLoopAsync();
+}
+
+class MainWindow extends Window {
+  // Declare the main window custom class:
+  static final mainWindowClass = WindowClass.custom(
+    className: 'mainWindow',
+    windowProc: Pointer.fromFunction<WindowProc>(mainWindowProc, 0),
+    bgColor: RGB(255, 255, 255),
+    useDarkMode: true,
+    titleColor: RGB(32, 32, 32),
+  );
+
+  // Redirect to default implementation [WindowClass.windowProcDefault].
+  static int mainWindowProc(int hwnd, int uMsg, int wParam, int lParam) =>
+          WindowClass.windowProcDefault(
+                  hwnd, uMsg, wParam, lParam, mainWindowClass);
   
+  MainWindow({super.width, super.height})
+          : super(
+    windowName: 'Win32 GUI - Example',
+    windowClass: mainWindowClass,
+    windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
+  ) ;
+
+  late final String imageDartLogoPath;
+  late final String iconDartLogoPath;
+
+  @override
+  Future<void> load() async {
+    imageDartLogoPath = await Window.resolveFilePath(
+            'package:win32_gui/resources/dart-logo.bmp');
+    
+    iconDartLogoPath = await Window.resolveFilePath(
+            'package:win32_gui/resources/dart-icon.ico');
+  }
+
+  @override
+  void build(int hwnd, int hdc) {
+    super.build(hwnd, hdc);
+
+    SetTextColor(hdc, RGB(255, 255, 255));
+    SetBkColor(hdc, RGB(96, 96, 96));
+
+    // Some extra build...
+  }
+
+  @override
+  void repaint(int hwnd, int hdc) {
+    super.repaint(hwnd, hdc);
+
+    setIcon(iconDartLogoPath);
+
+    var imgW = 143;
+    var imgH = 139;
+    
+    var hBitmap = loadImageCached(imageDartLogoPath, imgW, imgH);
+    
+    final x = (dimensionWidth - imgW) ~/ 2;
+    final y = 10;
+
+    drawImage(hdc, hBitmap, x, y, imgW, imgH);
+  }
 }
 ```
 
