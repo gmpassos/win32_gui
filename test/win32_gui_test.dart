@@ -34,14 +34,18 @@ void main() {
 
     expect(mainWindow.isDestroyed, isFalse);
 
+    print('-- Window.runMessageLoopAsync [destroy()]...');
+
     var msgLoop = Window.runMessageLoopAsync(
         timeout: Duration(seconds: 2),
         condition: () => !mainWindow.isDestroyed);
 
     mainWindow.destroy();
 
+    print('-- Waiting: Window.runMessageLoopAsync...');
     await msgLoop;
 
+    print('-- Checking `mainWindow.isDestroyed`');
     expect(mainWindow.isDestroyed, isTrue);
   });
 }
