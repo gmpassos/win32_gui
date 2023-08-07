@@ -142,9 +142,6 @@ class TextOutput extends RichEdit {
     setTextColor(hdc, RGB(255, 255, 255));
 
     setAutoURLDetect(true);
-
-    // Some extra build operations:
-    // ...
   }
 
   @override
@@ -162,8 +159,5 @@ class TextOutput extends RichEdit {
       TextFormatted(" -------------------------\r\n",
           color: RGB(255, 255, 255)),
     ]);
-
-    // Some extra repaint operations:
-    // ...
   }
 }

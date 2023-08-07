@@ -52,14 +52,6 @@ void logErrorTo(
       messageLogger: messageLogger, logDestiny: logDestiny);
 }
 
-void logDbTo(
-    {MessageLogger? messageLogger,
-    Object? logDestiny,
-    LoggerHandler? loggerHandler}) {
-  loggerHandler = _resolveLoggerHandler(loggerHandler);
-  loggerHandler.logDbTo(messageLogger: messageLogger, logDestiny: logDestiny);
-}
-
 extension LoggerExntesion on logging.Logger {
   LoggerHandler get handler {
     var handler = _loggerHandlers[this];
@@ -240,16 +232,6 @@ class LoggerHandler {
     _errorMessageLogger = messageLogger;
   }
 
-  MessageLogger? _dbMessageLogger;
-
-  MessageLogger? getLogDbTo() => _dbMessageLogger;
-
-  void logDbTo({MessageLogger? messageLogger, Object? logDestiny}) {
-    messageLogger ??= resolveLogDestiny(logDestiny);
-
-    _dbMessageLogger = messageLogger;
-  }
-
   void logAllMessage(logging.Level level, String message) {
     var messageLogger = _allMessageLogger;
 
@@ -265,20 +247,6 @@ class LoggerHandler {
       var parent = this.parent;
       messageLogger = parent?._errorMessageLogger;
       messageLogger ??= LoggerHandler.root._errorMessageLogger;
-    }
-
-    if (messageLogger != null) {
-      messageLogger(level, message);
-    }
-  }
-
-  void logDBMessage(logging.Level level, String message) {
-    var messageLogger = _dbMessageLogger;
-
-    if (messageLogger == null) {
-      var parent = this.parent;
-      messageLogger = parent?._dbMessageLogger;
-      messageLogger ??= LoggerHandler.root._dbMessageLogger;
     }
 
     if (messageLogger != null) {
