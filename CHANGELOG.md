@@ -3,7 +3,7 @@
 - `WindowMessageLoop.runLoop/runLoopAsync`:
   - Added `condition`.
 - `pubspec.yaml`: fix repository.
-- `[README.md](README.md)`:
+- `README.md`:
   - Usage example.
   - Added screenshot.
 - Adjust example.
