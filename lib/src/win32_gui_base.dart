@@ -1,10 +1,16 @@
-import 'dart:collection';
+import 'dart:async';
 import 'dart:ffi';
 import 'dart:math' as math;
 
+import 'package:collection/collection.dart';
 import 'package:ffi/ffi.dart';
+import 'package:logging/logging.dart' as logging;
 import 'package:resource_portable/resource.dart';
 import 'package:win32/win32.dart';
+
+import 'win32_constants.dart';
+
+final _logWindow = logging.Logger('Win32:Window');
 
 final hInstance = GetModuleHandle(nullptr);
 
@@ -91,6 +97,9 @@ class WindowClass {
     // var name = Win32Constants.wmByID[uMsg];
     // print('winProc[default]> uMsg: $uMsg ; name: $name');
 
+    _logWindow.info(
+        'windowProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam, windowClass: ${windowClass.className}');
+
     switch (uMsg) {
       case WM_CREATE:
         {
@@ -115,7 +124,9 @@ class WindowClass {
           }
 
           for (var w in windowClass._windows) {
-            w.callBuild(hwnd: hwnd, hdc: hdc);
+            if (w._hwnd == hwnd) {
+              w.callBuild(hdc: hdc);
+            }
           }
 
           ReleaseDC(hwnd, hdc);
@@ -126,7 +137,9 @@ class WindowClass {
           final hdc = BeginPaint(hwnd, ps);
 
           for (var w in windowClass._windows) {
-            w.callRepaint(hwnd: hwnd, hdc: hdc);
+            if (w._hwnd == hwnd) {
+              w.callRepaint(hdc: hdc);
+            }
           }
 
           EndPaint(hwnd, ps);
@@ -157,7 +170,11 @@ class WindowClass {
         {
           PostQuitMessage(0);
         }
-
+      case WM_NCDESTROY:
+        {
+          var w = windowClass._windows.firstWhereOrNull((w) => w._hwnd == hwnd);
+          w?._notifyDestroyed();
+        }
       default:
         {
           result = DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -244,14 +261,80 @@ class WindowClass {
   }
 }
 
-class Window {
-  static void runMessageLoop() {
+class WindowMessageLoop {
+  static void runLoop() {
     final msg = calloc<MSG>();
     while (GetMessage(msg, NULL, 0, 0) != 0) {
       TranslateMessage(msg);
       DispatchMessage(msg);
     }
   }
+
+  static Future<int> runLoopAsync(
+      {Duration? timeout, int maxConsecutiveDispatches = 100}) async {
+    maxConsecutiveDispatches = maxConsecutiveDispatches.clamp(2, 1000);
+
+    final initTime = DateTime.now();
+    var yieldMS = Duration(milliseconds: 1);
+
+    final msg = calloc<MSG>();
+
+    var totalMsgCount = 0;
+    var noMsgCount = 0;
+    var msgCount = 0;
+
+    while (true) {
+      var got = PeekMessage(msg, NULL, 0, 0, 1);
+
+      if (got != 0) {
+        totalMsgCount++;
+        noMsgCount = 0;
+        ++msgCount;
+
+        TranslateMessage(msg);
+        DispatchMessage(msg);
+
+        if (msgCount > 0 && msgCount % maxConsecutiveDispatches == 0) {
+          if (initTime.timeOut(timeout)) break;
+
+          await Future.delayed(yieldMS);
+        }
+      } else {
+        ++noMsgCount;
+        msgCount = 0;
+
+        if (noMsgCount > 1) {
+          if (initTime.timeOut(timeout)) break;
+
+          await Future.delayed(yieldMS);
+        }
+      }
+    }
+
+    return totalMsgCount;
+  }
+}
+
+extension _DateTimeExtension on DateTime {
+  Duration get elapsedTime => DateTime.now().difference(this);
+
+  Duration remainingTime(Duration timeout) => timeout - elapsedTime;
+
+  bool hasRemainingTime(Duration? timeout) {
+    if (timeout == null) return true;
+    return remainingTime(timeout).inMilliseconds > 0;
+  }
+
+  bool timeOut(Duration? timeout) => !hasRemainingTime(timeout);
+}
+
+class Window {
+  static void runMessageLoop() => WindowMessageLoop.runLoop();
+
+  static Future<int> runMessageLoopAsync(
+          {Duration? timeout, int maxConsecutiveDispatches = 100}) =>
+      WindowMessageLoop.runLoopAsync(
+          timeout: timeout, maxConsecutiveDispatches: maxConsecutiveDispatches);
 
   static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
 
@@ -270,7 +353,19 @@ class Window {
 
   int? bgColor;
 
-  int? hwnd;
+  bool get created => _hwnd != null;
+
+  int? _hwnd;
+
+  int get hwnd {
+    final hwnd = _hwnd;
+    if (hwnd == null) {
+      throw StateError("Window not created! `hwnd` not defined.");
+    }
+    return hwnd;
+  }
+
+  int? get hwndIfCreated => _hwnd;
 
   final int? hMenu;
   final Window? parent;
@@ -288,12 +383,7 @@ class Window {
       this.parent}) {
     windowClass.register();
 
-    var hwnd = create();
-    if (hwnd == 0) {
-      throw StateError("Can't create window: $this");
-    }
-
-    this.hwnd = hwnd;
+    create();
 
     windowClass.registerWindow(this);
 
@@ -326,7 +416,7 @@ class Window {
         height ?? CW_USEDEFAULT,
 
         // Parent window:
-        parent?.hwnd ?? NULL,
+        parent?._hwnd ?? NULL,
         // Menu:
         hMenu ?? NULL,
         // Instance handle:
@@ -334,12 +424,13 @@ class Window {
         // Additional application data:
         nullptr);
 
-    if (hwnd != 0) {
-      UpdateWindow(hwnd);
-    } else {
+    if (hwnd == 0) {
       var errorCode = GetLastError();
-      print('** GetLastError: $errorCode');
+      throw StateError("Can't create window> errorCode: $errorCode -> $this");
     }
+
+    _hwnd = hwnd;
+    updateWindow();
 
     return hwnd;
   }
@@ -356,17 +447,6 @@ class Window {
     print('-- Add child: $this -> $child');
 
     _children.add(child);
-  }
-
-  void show({int? hwnd}) {
-    ensureLoaded();
-
-    hwnd ??= this.hwnd;
-
-    if (hwnd != null) {
-      ShowWindow(hwnd, SW_SHOWNORMAL);
-      UpdateWindow(hwnd);
-    }
   }
 
   Future<void>? _loadCall;
@@ -392,25 +472,9 @@ class Window {
   /// - Note that Win32 API [build] and [repaint] won't allow any asynchronous call ([Future]s).
   Future<void> load() async {}
 
-  final dimension = calloc<RECT>();
-
-  void fetchDimension({int? hwnd}) {
-    hwnd ??= this.hwnd;
-
-    if (hwnd != null) {
-      GetClientRect(hwnd, dimension);
-    }
-  }
-
-  int get dimensionWidth => dimension.ref.right - dimension.ref.left;
-
-  int get dimensionHeight => dimension.ref.bottom - dimension.ref.top;
-
-  bool callBuild({int? hwnd, int? hdc}) {
+  bool callBuild({int? hdc}) {
     ensureLoaded();
-
-    hwnd ??= this.hwnd;
-    if (hwnd == null) return false;
+    final hwnd = this.hwnd;
 
     if (hdc == null) {
       final hdc = GetDC(hwnd);
@@ -424,7 +488,7 @@ class Window {
   }
 
   void _callBuildImpl(int hwnd, int hdc) {
-    fetchDimension(hwnd: hwnd);
+    fetchDimension();
     build(hwnd, hdc);
   }
 
@@ -434,11 +498,10 @@ class Window {
     SetWindowExtEx(hdc, 1, 1, nullptr);
   }
 
-  bool callRepaint({int? hwnd, int? hdc}) {
+  bool callRepaint({int? hdc}) {
     ensureLoaded();
 
-    hwnd ??= this.hwnd;
-    if (hwnd == null) return false;
+    final hwnd = this.hwnd;
 
     if (hdc == null) {
       final ps = calloc<PAINTSTRUCT>();
@@ -454,12 +517,52 @@ class Window {
   }
 
   void _callRepaintImpl(int hwnd, int hdc) {
-    fetchDimension(hwnd: hwnd);
+    fetchDimension();
     repaint(hwnd, hdc);
   }
 
   void repaint(int hwnd, int hdc) {
     drawBG(hdc);
+  }
+
+  int sendMessage(int msg, int wParam, int lParam) {
+    final hwnd = this.hwnd;
+    return SendMessage(hwnd, msg, wParam, lParam);
+  }
+
+  final dimension = calloc<RECT>();
+
+  void fetchDimension() {
+    final hwnd = this.hwnd;
+    GetClientRect(hwnd, dimension);
+  }
+
+  int get dimensionWidth => dimension.ref.right - dimension.ref.left;
+
+  int get dimensionHeight => dimension.ref.bottom - dimension.ref.top;
+
+  bool updateWindow() => UpdateWindow(hwnd) == 1;
+
+  void show() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    ShowWindow(hwnd, SW_SHOWNORMAL);
+    updateWindow();
+  }
+
+  void close() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    CloseWindow(hwnd);
+  }
+
+  void destroy() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    DestroyWindow(hwnd);
   }
 
   void drawBG(int hdc) {
@@ -495,6 +598,19 @@ class Window {
     }
   }
 
+  int getWindowTextLength() => GetWindowTextLength(hwnd);
+
+  String getWindowText({int? length}) {
+    length ??= getWindowTextLength();
+    final strPtr = wsalloc(length + 1);
+    GetWindowText(hwnd, strPtr, length + 1);
+    final str = strPtr.toDartString();
+    return str;
+  }
+
+  bool setWindowText(String text) =>
+      SetWindowText(hwnd, text.toNativeUtf16()) != 0;
+
   void drawText(int hdc, String text, int x, int y) {
     final s = text.toNativeUtf16();
     TextOut(hdc, x, y, s, text.length);
@@ -503,20 +619,18 @@ class Window {
 
   final Map<String, int> _imagesCached = {};
 
-  int loadImageCached(int hwnd, String imgPath, int imgWidth, int imgHeight) {
-    return _imagesCached[imgPath] ??=
-        loadImage(hwnd, imgPath, imgWidth, imgHeight);
+  int loadImageCached(String imgPath, int imgWidth, int imgHeight) {
+    return _imagesCached[imgPath] ??= loadImage(imgPath, imgWidth, imgHeight);
   }
 
-  int loadImage(int hwnd, String imgPath, int imgWidth, int imgHeight) {
+  int loadImage(String imgPath, int imgWidth, int imgHeight) {
     final hBitmap = LoadImage(NULL, imgPath.toNativeUtf16(), IMAGE_BITMAP,
         imgWidth, imgHeight, LR_LOADFROMFILE);
 
     return hBitmap;
   }
 
-  void drawImage(
-      int hwnd, int hdc, int hBitmap, int x, int y, int width, int height) {
+  void drawImage(int hdc, int hBitmap, int x, int y, int width, int height) {
     final hMemDC = CreateCompatibleDC(hdc);
 
     SelectObject(hMemDC, hBitmap);
@@ -526,42 +640,79 @@ class Window {
     DeleteObject(hMemDC);
   }
 
-  void setIcon(int hwnd, String iconPath,
-      {bool small = true, bool big = true}) {
+  void setIcon(String iconPath, {bool small = true, bool big = true}) {
     var iconPathPtr = iconPath.toNativeUtf16();
 
     if (small) {
       var hIcon =
           LoadImage(NULL, iconPathPtr, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
-      SendMessage(hwnd, WM_SETICON, ICON_SMALL, hIcon);
+      sendMessage(WM_SETICON, ICON_SMALL, hIcon);
     }
 
     if (big) {
       var hIcon =
           LoadImage(NULL, iconPathPtr, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-      SendMessage(hwnd, WM_SETICON, ICON_BIG, hIcon);
+      sendMessage(WM_SETICON, ICON_BIG, hIcon);
     }
   }
 
   void processCommand(int hwnd, int hdc, int lParam) {
     for (var child in _children) {
-      if (child.hwnd == lParam) {
+      if (child._hwnd == lParam) {
         child.processCommand(hwnd, hdc, lParam);
       }
     }
   }
 
+  final StreamController<Window> _onDestroy = StreamController();
+
+  Stream<Window> get onDestroy => _onDestroy.stream;
+
+  bool _destroyed = false;
+
+  void _notifyDestroyed() {
+    _destroyed = true;
+
+    _onDestroy.add(this);
+
+    var waitingDestroyed = _waitingDestroyed;
+    if (waitingDestroyed != null && !waitingDestroyed.isCompleted) {
+      waitingDestroyed.complete(true);
+      _waitingDestroyed = null;
+    }
+  }
+
+  Completer<bool>? _waitingDestroyed;
+
+  Future<bool> waitDestroyed({Duration? timeout}) {
+    if (_destroyed) return Future.value(true);
+
+    var waitingDestroyed = _waitingDestroyed ??= Completer();
+
+    var future = waitingDestroyed.future;
+
+    if (timeout != null) {
+      future = future.timeout(timeout, onTimeout: () => false);
+    }
+
+    return future;
+  }
+
   @override
   String toString() {
-    return 'Window#$hwnd{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
+    return 'Window#$_hwnd{windowName: $windowName, windowStyles: $windowStyles, x: $x, y: $y, width: $width, height: $height, bgColor: $bgColor, parent: $parent}@$windowClass';
   }
 }
 
 class ChildWindow extends Window {
-  final int id;
+  static int idCount = 0;
+
+  static int newID() => ++idCount;
+
+  int get id => hMenu!;
 
   ChildWindow(
-      {required this.id,
+      {int? id,
       required super.windowClass,
       super.windowName,
       super.windowStyles = 0,
@@ -571,5 +722,5 @@ class ChildWindow extends Window {
       super.height,
       super.bgColor,
       required super.parent})
-      : super(hMenu: id);
+      : super(hMenu: id ?? newID());
 }

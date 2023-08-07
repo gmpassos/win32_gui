@@ -166,6 +166,13 @@ abstract class Win32Constants {
   });
 
   static final Map<String, int> _wmByNameExtra = UnmodifiableMapView({
+    'CFE_BOLD': 1,
+    'CFE_ITALIC': 2,
+    'CFE_UNDERLINE': 4,
+    'CFM_BOLD': 1,
+    'CFM_ITALIC': 2,
+    'CFM_UNDERLINE': 4,
+    'SCF_ALL': 4,
     'SCF_DEFAULT': 0x0000,
     'SCF_SELECTION': 0x1,
     'WM_USER': 1024,

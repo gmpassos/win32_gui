@@ -1,6 +1,9 @@
+import 'package:logging/logging.dart' as logging;
 import 'package:win32/win32.dart';
 
-import 'win32_gui_base.dart';
+import '../win32_gui_base.dart';
+
+final _log = logging.Logger('Win32:Button');
 
 class Button extends ChildWindow {
   static final buttonWindowClass = WindowClass.predefined(
@@ -10,7 +13,7 @@ class Button extends ChildWindow {
   final void Function(int lParam)? onCommand;
 
   Button(
-      {required super.id,
+      {super.id,
       super.parent,
       required String label,
       int windowStyles = WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
@@ -31,6 +34,8 @@ class Button extends ChildWindow {
 
   @override
   void processCommand(int hwnd, int hdc, int lParam) {
+    _log.info('[hwnd: $hwnd, hdc: $hdc] processCommand> lParam: $lParam');
+
     final onCommand = this.onCommand;
 
     if (onCommand != null) {
@@ -40,6 +45,6 @@ class Button extends ChildWindow {
 
   @override
   String toString() {
-    return 'Button#$hwnd{id: $id}';
+    return 'Button#$hwndIfCreated{id: $id}';
   }
 }

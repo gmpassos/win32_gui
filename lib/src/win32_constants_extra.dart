@@ -3,6 +3,15 @@ import 'package:win32/win32.dart';
 // ignore_for_file: constant_identifier_names
 
 const CFM_COLOR = 1073741824;
+
+const CFE_BOLD = 1;
+const CFE_ITALIC = 2;
+const CFE_UNDERLINE = 4;
+
+const CFM_BOLD = 1;
+const CFM_ITALIC = 2;
+const CFM_UNDERLINE = 4;
+
 const SCF_ALL = 4;
 const SCF_DEFAULT = 0;
 const SCF_SELECTION = 1;
