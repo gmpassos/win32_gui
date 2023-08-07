@@ -746,6 +746,7 @@ class Window {
   }
 
   /// Loads image from [imgPath] with dimension [imgWidth], [imgHeight].
+  /// - The image should be a 24bit Bitmap.
   /// - See [loadImageCached].
   int loadImage(String imgPath, int imgWidth, int imgHeight) {
     final hBitmap = LoadImage(NULL, imgPath.toNativeUtf16(), IMAGE_BITMAP,
