@@ -1,7 +1,8 @@
-import 'dart:collection';
+import 'dart:async';
 import 'dart:ffi';
 import 'dart:math' as math;
 
+import 'package:collection/collection.dart';
 import 'package:ffi/ffi.dart';
 import 'package:logging/logging.dart' as logging;
 import 'package:resource_portable/resource.dart';
@@ -169,7 +170,11 @@ class WindowClass {
         {
           PostQuitMessage(0);
         }
-
+      case WM_NCDESTROY:
+        {
+          var w = windowClass._windows.firstWhereOrNull((w) => w._hwnd == hwnd);
+          w?._notifyDestroyed();
+        }
       default:
         {
           result = DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -546,6 +551,20 @@ class Window {
     updateWindow();
   }
 
+  void close() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    CloseWindow(hwnd);
+  }
+
+  void destroy() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    DestroyWindow(hwnd);
+  }
+
   void drawBG(int hdc) {
     final bgColor = this.bgColor;
 
@@ -643,6 +662,40 @@ class Window {
         child.processCommand(hwnd, hdc, lParam);
       }
     }
+  }
+
+  final StreamController<Window> _onDestroy = StreamController();
+
+  Stream<Window> get onDestroy => _onDestroy.stream;
+
+  bool _destroyed = false;
+
+  void _notifyDestroyed() {
+    _destroyed = true;
+
+    _onDestroy.add(this);
+
+    var waitingDestroyed = _waitingDestroyed;
+    if (waitingDestroyed != null && !waitingDestroyed.isCompleted) {
+      waitingDestroyed.complete(true);
+      _waitingDestroyed = null;
+    }
+  }
+
+  Completer<bool>? _waitingDestroyed;
+
+  Future<bool> waitDestroyed({Duration? timeout}) {
+    if (_destroyed) return Future.value(true);
+
+    var waitingDestroyed = _waitingDestroyed ??= Completer();
+
+    var future = waitingDestroyed.future;
+
+    if (timeout != null) {
+      future = future.timeout(timeout, onTimeout: () => false);
+    }
+
+    return future;
   }
 
   @override

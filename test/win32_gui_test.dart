@@ -31,6 +31,8 @@ void main() {
         await Window.runMessageLoopAsync(timeout: Duration(seconds: 5));
 
     print('-- Window.runMessageLoop finished> messages: $messages');
+
+    mainWindow.destroy();
   });
 }
 
