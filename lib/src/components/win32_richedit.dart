@@ -125,16 +125,6 @@ class RichEdit extends ChildWindow {
 
     SendMessage(hwnd, EM_GETCHARFORMAT, range, cf.address);
 
-    print(cf.ref.cbSize);
-    print(cf.ref.dwMask);
-    print(cf.ref.dwEffects);
-    print(cf.ref.yHeight);
-    print(cf.ref.yOffset);
-    print(cf.ref.crTextColor);
-    print(cf.ref.bCharSet);
-    print(cf.ref.bPitchAndFamily);
-    print(cf.ref.szFaceName);
-
     logInfo('getCharFormat', () => 'range: $range');
 
     return cf;
