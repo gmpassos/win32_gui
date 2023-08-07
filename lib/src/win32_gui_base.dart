@@ -323,11 +323,15 @@ class WindowClass {
 class WindowMessageLoop {
   /// Runs a [Window] message loop that blocks the current thread/`Isolate`.
   ///
+  /// - If [condition] is passed loops while [condition] is `true`.
   /// - Uses Win32 [GetMessage] to consume the [Window] messages (blocking call).
   /// - See [runLoopAsync].
-  static void runLoop() {
+  static void runLoop({bool Function()? condition}) {
+    condition ??= () => true;
+
     final msg = calloc<MSG>();
-    while (GetMessage(msg, NULL, 0, 0) != 0) {
+
+    while (condition() && GetMessage(msg, NULL, 0, 0) != 0) {
       TranslateMessage(msg);
       DispatchMessage(msg);
     }
@@ -336,11 +340,15 @@ class WindowMessageLoop {
   /// Runs a [Window] message loop capable to [timeout] and also
   /// allows Dart [Future]s to be processed while processing messages.
   ///
+  /// - If [condition] is passed loops while [condition] is `true`.
   /// - Uses Win32 [PeekMessage] to consume the [Window] messages (non-blocking call).
   /// - See [runLoop].
   static Future<int> runLoopAsync(
-      {Duration? timeout, int maxConsecutiveDispatches = 100}) async {
+      {Duration? timeout,
+      int maxConsecutiveDispatches = 100,
+      bool Function()? condition}) async {
     maxConsecutiveDispatches = maxConsecutiveDispatches.clamp(2, 1000);
+    condition ??= () => true;
 
     final initTime = DateTime.now();
     var yieldMS = Duration(milliseconds: 1);
@@ -351,7 +359,7 @@ class WindowMessageLoop {
     var noMsgCount = 0;
     var msgCount = 0;
 
-    while (true) {
+    while (condition()) {
       var got = PeekMessage(msg, NULL, 0, 0, 1);
 
       if (got != 0) {
@@ -399,12 +407,17 @@ extension _DateTimeExtension on DateTime {
 /// A Win32 Window.
 /// - See [ChildWindow].
 class Window {
-  static void runMessageLoop() => WindowMessageLoop.runLoop();
+  static void runMessageLoop({bool Function()? condition}) =>
+      WindowMessageLoop.runLoop(condition: condition);
 
   static Future<int> runMessageLoopAsync(
-          {Duration? timeout, int maxConsecutiveDispatches = 100}) =>
+          {Duration? timeout,
+          int maxConsecutiveDispatches = 100,
+          bool Function()? condition}) =>
       WindowMessageLoop.runLoopAsync(
-          timeout: timeout, maxConsecutiveDispatches: maxConsecutiveDispatches);
+          timeout: timeout,
+          maxConsecutiveDispatches: maxConsecutiveDispatches,
+          condition: condition);
 
   static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
 
@@ -796,6 +809,10 @@ class Window {
   Stream<Window> get onDestroy => _onDestroy.stream;
 
   bool _destroyed = false;
+
+  /// Returns `true` if the window was [destroy]ed and the `WM_NCDESTROY` was processed.
+  /// - See [onDestroy].
+  bool get isDestroyed => _destroyed;
 
   void _notifyDestroyed() {
     _destroyed = true;

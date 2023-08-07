@@ -15,6 +15,12 @@ Win32 API GUI in Object-Oriented style with some helpers. Uses package [win32] a
 [win32]: https://pub.dev/packages/win32
 [dart:ffi]: https://api.dart.dev/stable/latest/dart-ffi/dart-ffi-library.html
 
+## Screenshot
+
+[Example](https://github.com/gmpassos/win32_gui/blob/master/example/win32_gui_example.dart) screenshot:
+
+<img width="640" src="https://raw.githubusercontent.com/gmpassos/win32_gui/master/example/example-screenshot.jpg" />
+
 ## Usage
 
 Here's a simple Hello World window:

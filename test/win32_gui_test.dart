@@ -30,9 +30,19 @@ void main() {
     var messages =
         await Window.runMessageLoopAsync(timeout: Duration(seconds: 5));
 
-    print('-- Window.runMessageLoop finished> messages: $messages');
+    print('-- Window.runMessageLoopAsync finished> messages: $messages');
+
+    expect(mainWindow.isDestroyed, isFalse);
+
+    var msgLoop = Window.runMessageLoopAsync(
+        timeout: Duration(seconds: 2),
+        condition: () => !mainWindow.isDestroyed);
 
     mainWindow.destroy();
+
+    await msgLoop;
+
+    expect(mainWindow.isDestroyed, isTrue);
   });
 }
 
