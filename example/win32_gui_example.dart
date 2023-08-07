@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:win32_gui/win32_gui_logging.dart';
 import 'package:win32_gui/win32_gui.dart';
+import 'package:win32_gui/win32_gui_logging.dart';
 
 Future<void> main() async {
   logToConsole();

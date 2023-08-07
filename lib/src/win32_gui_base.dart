@@ -257,11 +257,36 @@ class WindowClass {
 }
 
 class Window {
-  static void runMessageLoop() {
+  static void runMessageLoop({Duration? timeout}) {
+    if (timeout == null) {
+      _runMessageLoopNonStop();
+    } else {
+      _runMessageLoopTimeout(timeout);
+    }
+  }
+
+  static void _runMessageLoopNonStop() {
     final msg = calloc<MSG>();
     while (GetMessage(msg, NULL, 0, 0) != 0) {
       TranslateMessage(msg);
       DispatchMessage(msg);
+    }
+  }
+
+  static void _runMessageLoopTimeout(Duration timeout) {
+    final initTime = DateTime.now();
+
+    final msg = calloc<MSG>();
+    while (GetMessage(msg, NULL, 0, 0) != 0) {
+      TranslateMessage(msg);
+      DispatchMessage(msg);
+
+      var elapsedTime = DateTime.now().difference(initTime);
+      var remainingTime = timeout - elapsedTime;
+
+      if (remainingTime.inMilliseconds <= 0) {
+        break;
+      }
     }
   }
 
