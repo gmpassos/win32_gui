@@ -1,6 +1,7 @@
 ## 1.0.3
 
 - `Window`: added `redrawWindow`.
+- `WindowClassColors`: added `buttonColors`.
 
 ## 1.0.2
 
