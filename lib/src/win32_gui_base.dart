@@ -337,6 +337,11 @@ class WindowMessageLoop {
     }
   }
 
+  static const yieldMS1 = Duration(milliseconds: 1);
+  static const yieldMS10 = Duration(milliseconds: 10);
+  static const yieldMS30 = Duration(milliseconds: 30);
+  static const yieldMS100 = Duration(milliseconds: 100);
+
   /// Runs a [Window] message loop capable to [timeout] and also
   /// allows Dart [Future]s to be processed while processing messages.
   ///
@@ -351,7 +356,6 @@ class WindowMessageLoop {
     condition ??= () => true;
 
     final initTime = DateTime.now();
-    var yieldMS = Duration(milliseconds: 1);
 
     final msg = calloc<MSG>();
 
@@ -373,7 +377,7 @@ class WindowMessageLoop {
         if (msgCount > 0 && msgCount % maxConsecutiveDispatches == 0) {
           if (initTime.timeOut(timeout)) break;
 
-          await Future.delayed(yieldMS);
+          await Future.delayed(yieldMS1);
         }
       } else {
         ++noMsgCount;
@@ -381,6 +385,13 @@ class WindowMessageLoop {
 
         if (noMsgCount > 1) {
           if (initTime.timeOut(timeout)) break;
+
+          var yieldMS = switch (noMsgCount) {
+            > 1000 => yieldMS100,
+            > 30 => yieldMS30,
+            > 10 => yieldMS10,
+            _ => yieldMS1,
+          };
 
           await Future.delayed(yieldMS);
         }
@@ -407,9 +418,11 @@ extension _DateTimeExtension on DateTime {
 /// A Win32 Window.
 /// - See [ChildWindow].
 class Window {
+  /// Alias to [WindowMessageLoop.runLoop].
   static void runMessageLoop({bool Function()? condition}) =>
       WindowMessageLoop.runLoop(condition: condition);
 
+  /// Alias to [WindowMessageLoop.runLoopAsync].
   static Future<int> runMessageLoopAsync(
           {Duration? timeout,
           int maxConsecutiveDispatches = 100,

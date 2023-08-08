@@ -1,3 +1,7 @@
+## 1.0.2
+
+- `WindowMessageLoop`: optimize `runLoopAsync` yield time.
+
 ## 1.0.1
 
 - `WindowMessageLoop.runLoop/runLoopAsync`:
