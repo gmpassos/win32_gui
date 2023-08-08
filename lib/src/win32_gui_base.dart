@@ -103,6 +103,9 @@ class WindowClass {
   /// Defines the colors for `WM_CTLCOLORBTN` message.
   static WindowClassColors? buttonColors;
 
+  /// Defines the colors for `WM_CTLCOLORLISTBOX` message.
+  static WindowClassColors? listBoxColors;
+
   /// Defines the colors for `WM_CTLCOLOREDIT` message.
   static WindowClassColors? editColors;
 
@@ -182,6 +185,10 @@ class WindowClass {
       case WM_CTLCOLORBTN:
         {
           result = _setColors(wParam, buttonColors);
+        }
+      case WM_CTLCOLORLISTBOX:
+        {
+          result = _setColors(wParam, listBoxColors);
         }
       case WM_CTLCOLOREDIT:
         {
