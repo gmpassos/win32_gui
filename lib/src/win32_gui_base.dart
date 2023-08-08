@@ -827,18 +827,36 @@ class Window {
   final Map<String, int> _imagesCached = {};
 
   /// Cached version of [loadImage].
-  int loadImageCached(String imgPath, int imgWidth, int imgHeight) {
-    return _imagesCached[imgPath] ??= loadImage(imgPath, imgWidth, imgHeight);
-  }
+  /// -- See [getBitmapDimension].
+  int loadImageCached(String imgPath, {int imgWidth = 0, int imgHeight = 0}) =>
+      _imagesCached[imgPath] ??=
+          loadImage(imgPath, imgWidth: imgWidth, imgHeight: imgHeight);
 
   /// Loads image from [imgPath] with dimension [imgWidth], [imgHeight].
   /// - The image should be a 24bit Bitmap.
-  /// - See [loadImageCached].
-  int loadImage(String imgPath, int imgWidth, int imgHeight) {
+  /// - See [loadImageCached] and [getBitmapDimension].
+  int loadImage(String imgPath, {int imgWidth = 0, int imgHeight = 0}) {
     final hBitmap = LoadImage(NULL, imgPath.toNativeUtf16(), IMAGE_BITMAP,
         imgWidth, imgHeight, LR_LOADFROMFILE);
 
     return hBitmap;
+  }
+
+  /// Returns the [hBitmap] dimension.
+  /// - Calls [GetObject].
+  ({int width, int height})? getBitmapDimension(int hBitmap) {
+    var bm = calloc<BITMAP>();
+
+    var ok = GetObject(hBitmap, sizeOf<BITMAP>(), bm) != 0;
+    if (!ok) {
+      free(bm);
+      return null;
+    }
+
+    var dimension = (width: bm.ref.bmWidth, height: bm.ref.bmHeight);
+    free(bm);
+
+    return dimension;
   }
 
   /// Paint operation: draws [hBitmap] at coordinates [x], [y].

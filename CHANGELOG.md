@@ -5,6 +5,7 @@
   - Renamed `onDestroy` to `onDestroyed` (called after `WM_NCDESTROY`).
   - Added `invalidateRect`.
   - Added `defaultRepaint`: custom `repaint` is only called if `defaultRepaint` is false.
+  - Added `getBitmapDimension`.
 - `RichEdit`:
   - Optimize `setTextFormatted`.
 

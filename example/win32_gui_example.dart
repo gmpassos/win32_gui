@@ -117,24 +117,26 @@ class MainWindow extends Window {
 
   @override
   void repaint(int hwnd, int hdc) {
-    super.repaint(hwnd, hdc);
-
     setIcon(iconDartLogoPath);
 
-    var imgW = 143;
-    var imgH = 139;
+    var hBitmap = loadImageCached(imageDartLogoPath);
+    var imgDimension = getBitmapDimension(hBitmap);
 
-    var hBitmap = loadImageCached(imageDartLogoPath, imgW, imgH);
+    // Valid Bitmap:
+    if (imgDimension != null) {
+      var imgW = imgDimension.width;
+      var imgH = imgDimension.height;
 
-    final hSpace = (dimensionWidth - imgW);
-    //final vSpace = (dimensionHeight - imgH);
-    final xCenter = hSpace ~/ 2;
-    //final yCenter = vSpace ~/ 2;
+      final hSpace = (dimensionWidth - imgW);
+      //final vSpace = (dimensionHeight - imgH);
+      final xCenter = hSpace ~/ 2;
+      //final yCenter = vSpace ~/ 2;
 
-    final x = xCenter;
-    final y = 10;
+      final x = xCenter;
+      final y = 10;
 
-    drawImage(hdc, hBitmap, x, y, imgW, imgH);
+      drawImage(hdc, hBitmap, x, y, imgW, imgH);
+    }
 
     textOutput.callRepaint();
   }
@@ -156,7 +158,7 @@ class TextOutput extends RichEdit {
 
   @override
   void repaint(int hwnd, int hdc) {
-    super.repaint(hwnd, hdc);
+    invalidateRect();
 
     setBkColor(RGB(32, 32, 32));
     setTextColor(hdc, RGB(255, 255, 255));
