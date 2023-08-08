@@ -3,6 +3,7 @@
 - `Window`:
   - Added `onClose` and `processClose`.
   - Renamed `onDestroy` to `onDestroyed` (called after `WM_NCDESTROY`).
+  - Added `invalidateRect`.
 - `RichEdit`:
   - Optimize `setTextFormatted`.
 

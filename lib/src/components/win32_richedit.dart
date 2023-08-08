@@ -288,6 +288,8 @@ class RichEdit extends ChildWindow {
     return list.length;
   }
 
+  static const _listEquality = ListEquality<TextFormatted>();
+
   /// Sets this [RichEdit] text with [textFormatted] elements.
   bool setTextFormatted(Iterable<TextFormatted> textFormatted,
       {bool scrollToBottom = true, bool force = false}) {
@@ -304,31 +306,30 @@ class RichEdit extends ChildWindow {
     }
 
     if (!force && _onlyTextFormatted) {
-      const listEquality = ListEquality<TextFormatted>();
-
       var allTextFormatted = _allTextFormatted ?? [];
-
-      if (listEquality.equals(newTextList, allTextFormatted)) {
-        if (scrollToBottom) {
-          this.scrollToBottom();
+      if (allTextFormatted.isNotEmpty) {
+        if (_listEquality.equals(newTextList, allTextFormatted)) {
+          if (scrollToBottom) {
+            this.scrollToBottom();
+          }
+          return false;
         }
-        return false;
-      }
 
-      var tailSz = newTextList.length - allTextFormatted.length;
-      if (tailSz > 0) {
-        var headSz = newTextList.length - tailSz;
-        assert(headSz > 0);
+        var tailSz = newTextList.length - allTextFormatted.length;
+        if (tailSz > 0) {
+          var headSz = newTextList.length - tailSz;
+          assert(headSz > 0);
 
-        var newHead = newTextList.sublist(0, headSz);
-        var allTextFormattedHead = allTextFormatted.sublist(0, headSz);
+          var newHead = newTextList.sublist(0, headSz);
+          var allTextFormattedHead = allTextFormatted.sublist(0, headSz);
 
-        // Head equals: add only tail (new lines):
-        if (listEquality.equals(newHead, allTextFormattedHead)) {
-          var allTextFormattedTail = allTextFormatted.sublist(headSz);
-          appendAllTextFormatted(allTextFormattedTail,
-              scrollToBottom: scrollToBottom);
-          return true;
+          // Head equals: add only tail (new lines):
+          if (_listEquality.equals(newHead, allTextFormattedHead)) {
+            var allTextFormattedTail = allTextFormatted.sublist(headSz);
+            appendAllTextFormatted(allTextFormattedTail,
+                scrollToBottom: scrollToBottom);
+            return true;
+          }
         }
       }
     }
@@ -336,7 +337,7 @@ class RichEdit extends ChildWindow {
     setWindowText('');
     _onlyTextFormatted = false;
 
-    appendAllTextFormatted(textFormatted, scrollToBottom: scrollToBottom);
+    appendAllTextFormatted(newTextList, scrollToBottom: scrollToBottom);
 
     _onlyTextFormatted = true;
     _allTextFormatted = newTextList;

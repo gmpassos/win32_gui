@@ -683,11 +683,7 @@ class Window {
   /// - Calls Win32 [UpdateWindow].
   bool updateWindow() => UpdateWindow(hwnd) == 1;
 
-  /// Redraws this [Window].
-  /// - Calls Win32 [RedrawWindow].
-  bool redrawWindow({math.Rectangle? rect, Pointer<RECT>? pRect, int? flags}) {
-    Pointer<RECT>? r;
-
+  Pointer<RECT>? _resolveRect(math.Rectangle<num>? rect, Pointer<RECT>? pRect) {
     if (rect != null) {
       _rect.ref
         ..top = rect.top.toInt()
@@ -695,14 +691,28 @@ class Window {
         ..bottom = rect.bottom.toInt()
         ..left = rect.left.toInt();
 
-      r = _rect;
+      return _rect;
     } else if (pRect != null) {
-      r = pRect;
+      return pRect;
+    } else {
+      return null;
     }
+  }
 
+  /// Redraws this [Window].
+  /// - Calls Win32 [RedrawWindow].
+  bool redrawWindow({math.Rectangle? rect, Pointer<RECT>? pRect, int? flags}) {
+    var r = _resolveRect(rect, pRect);
     flags ??= RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW;
-
     return RedrawWindow(hwnd, r ?? nullptr, 0, flags) == 1;
+  }
+
+  /// Invalidates [Window] region.
+  /// - Calls Win32 [InvalidateRect].
+  bool invalidateRect(
+      {math.Rectangle? rect, Pointer<RECT>? pRect, bool eraseBg = true}) {
+    var r = _resolveRect(rect, pRect);
+    return InvalidateRect(hwnd, r ?? nullptr, eraseBg ? 1 : 0) != 0;
   }
 
   /// Shows this [Window].
@@ -753,19 +763,7 @@ class Window {
   /// Paint operation: fills a rectangle with [color].
   void fillRect(int hdc, int color,
       {math.Rectangle? rect, Pointer<RECT>? pRect}) {
-    Pointer<RECT>? r;
-
-    if (rect != null) {
-      _rect.ref
-        ..top = rect.top.toInt()
-        ..right = rect.right.toInt()
-        ..bottom = rect.bottom.toInt()
-        ..left = rect.left.toInt();
-
-      r = _rect;
-    } else if (pRect != null) {
-      r = pRect;
-    }
+    var r = _resolveRect(rect, pRect);
 
     if (r != null) {
       final hBrush = CreateSolidBrush(color);
