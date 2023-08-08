@@ -1,5 +1,6 @@
 import 'dart:ffi';
 
+import 'package:collection/collection.dart';
 import 'package:ffi/ffi.dart';
 import 'package:logging/logging.dart' as logging;
 import 'package:win32/win32.dart';
@@ -196,6 +197,21 @@ class RichEdit extends ChildWindow {
       bool italic = false,
       bool underline = false,
       bool scrollToBottom = true}) {
+    _onlyTextFormatted = false;
+    _appendTextImpl(text,
+        color: color,
+        bold: bold,
+        italic: italic,
+        underline: underline,
+        scrollToBottom: scrollToBottom);
+  }
+
+  void _appendTextImpl(String text,
+      {int? color,
+      bool bold = false,
+      bool italic = false,
+      bool underline = false,
+      bool scrollToBottom = true}) {
     final cf = getCharFormat();
     final cfRef = cf.ref;
 
@@ -233,15 +249,24 @@ class RichEdit extends ChildWindow {
     }
   }
 
+  bool _onlyTextFormatted = true;
+  List<TextFormatted>? _allTextFormatted;
+
   /// Alias to [appendText] passing [textFormatted] attributes.
   void appendTextFormatted(TextFormatted textFormatted,
-          {bool scrollToBottom = true}) =>
-      appendText(textFormatted.text,
-          bold: textFormatted.bold,
-          italic: textFormatted.italic,
-          underline: textFormatted.underline,
-          color: textFormatted.color,
-          scrollToBottom: scrollToBottom);
+      {bool scrollToBottom = true}) {
+    if (_onlyTextFormatted) {
+      var allTextFormatted = _allTextFormatted ??= [];
+      allTextFormatted.add(textFormatted);
+    }
+
+    _appendTextImpl(textFormatted.text,
+        bold: textFormatted.bold,
+        italic: textFormatted.italic,
+        underline: textFormatted.underline,
+        color: textFormatted.color,
+        scrollToBottom: scrollToBottom);
+  }
 
   /// Alias to [appendTextFormatted] passing all [textFormatted] elements.
   int appendAllTextFormatted(Iterable<TextFormatted> textFormatted,
@@ -252,7 +277,7 @@ class RichEdit extends ChildWindow {
     var beforeLastIdx = list.length - 1;
     for (var i = 0; i < beforeLastIdx; ++i) {
       var tf = list[i];
-      appendTextFormatted(tf, scrollToBottom: scrollToBottom);
+      appendTextFormatted(tf, scrollToBottom: false);
     }
 
     {
@@ -264,10 +289,59 @@ class RichEdit extends ChildWindow {
   }
 
   /// Sets this [RichEdit] text with [textFormatted] elements.
-  void setTextFormatted(Iterable<TextFormatted> textFormatted,
-      {bool scrollToBottom = true}) {
+  bool setTextFormatted(Iterable<TextFormatted> textFormatted,
+      {bool scrollToBottom = true, bool force = false}) {
+    var newTextList = textFormatted.toList();
+
+    if (newTextList.isEmpty) {
+      setWindowText('');
+      _onlyTextFormatted = true;
+      _allTextFormatted = null;
+      if (scrollToBottom) {
+        this.scrollToBottom();
+      }
+      return true;
+    }
+
+    if (!force && _onlyTextFormatted) {
+      const listEquality = ListEquality<TextFormatted>();
+
+      var allTextFormatted = _allTextFormatted ?? [];
+
+      if (listEquality.equals(newTextList, allTextFormatted)) {
+        if (scrollToBottom) {
+          this.scrollToBottom();
+        }
+        return false;
+      }
+
+      var tailSz = newTextList.length - allTextFormatted.length;
+      if (tailSz > 0) {
+        var headSz = newTextList.length - tailSz;
+        assert(headSz > 0);
+
+        var newHead = newTextList.sublist(0, headSz);
+        var allTextFormattedHead = allTextFormatted.sublist(0, headSz);
+
+        // Head equals: add only tail (new lines):
+        if (listEquality.equals(newHead, allTextFormattedHead)) {
+          var allTextFormattedTail = allTextFormatted.sublist(headSz);
+          appendAllTextFormatted(allTextFormattedTail,
+              scrollToBottom: scrollToBottom);
+          return true;
+        }
+      }
+    }
+
     setWindowText('');
+    _onlyTextFormatted = false;
+
     appendAllTextFormatted(textFormatted, scrollToBottom: scrollToBottom);
+
+    _onlyTextFormatted = true;
+    _allTextFormatted = newTextList;
+
+    return true;
   }
 
   @override
