@@ -159,7 +159,7 @@ class WindowClass {
       case WM_PAINT:
         {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
-          if (window != null) {
+          if (window != null && !window.defaultRepaint) {
             final ps = calloc<PAINTSTRUCT>();
             final hdc = BeginPaint(hwnd, ps);
 
@@ -167,6 +167,12 @@ class WindowClass {
 
             EndPaint(hwnd, ps);
             free(ps);
+
+            // Message processed (custom paint):
+            result = 0;
+          } else {
+            // Message NOT processed (default paint):
+            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
           }
         }
       case WM_COMMAND:
@@ -205,7 +211,12 @@ class WindowClass {
           if (window != null) {
             var processed = window.processClose(wParam, lParam);
             window._notifyClose();
-            result = processed ? 0 : -1;
+
+            if (processed) {
+              result = 0;
+            } else {
+              result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+            }
           }
         }
 
@@ -214,7 +225,11 @@ class WindowClass {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           if (window != null) {
             var processed = window.processDestroy(wParam, lParam);
-            result = processed ? 0 : -1;
+            if (processed) {
+              result = 0;
+            } else {
+              result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+            }
           }
         }
       case WM_NCDESTROY:
@@ -496,6 +511,10 @@ class Window {
   final int? hMenu;
   final Window? parent;
 
+  /// If `true` will perform a default repaint and
+  /// will NOT call the custom [repaint] method.
+  bool defaultRepaint;
+
   Window(
       {required this.windowClass,
       this.windowName,
@@ -506,6 +525,7 @@ class Window {
       this.height,
       this.bgColor,
       this.hMenu,
+      this.defaultRepaint = true,
       this.parent}) {
     windowClass.register();
 
@@ -634,6 +654,10 @@ class Window {
 
     final hwnd = this.hwnd;
 
+    if (defaultRepaint) {
+      return false;
+    }
+
     if (hdc == null) {
       final ps = calloc<PAINTSTRUCT>();
       final hdc = BeginPaint(hwnd, ps);
@@ -652,11 +676,9 @@ class Window {
     repaint(hwnd, hdc);
   }
 
-  /// [Window] repaint procedure.
-  void repaint(int hwnd, int hdc) {
-    invalidateRect();
-    drawBG(hdc);
-  }
+  /// [Window] custom repaint procedure.
+  /// - [defaultRepaint] should be `false` to call a custom [repaint].
+  void repaint(int hwnd, int hdc) {}
 
   /// Sends a [message] to this [Window].
   int sendMessage(int message, int wParam, int lParam) {
@@ -943,16 +965,17 @@ class ChildWindow extends Window {
   /// - Stored at [hMenu].
   int get id => hMenu!;
 
-  ChildWindow(
-      {int? id,
-      required super.windowClass,
-      super.windowName,
-      super.windowStyles = 0,
-      super.x,
-      super.y,
-      super.width,
-      super.height,
-      super.bgColor,
-      required super.parent})
-      : super(hMenu: id ?? newID());
+  ChildWindow({
+    int? id,
+    required super.windowClass,
+    super.windowName,
+    super.windowStyles = 0,
+    super.x,
+    super.y,
+    super.width,
+    super.height,
+    super.bgColor,
+    super.defaultRepaint,
+    required super.parent,
+  }) : super(hMenu: id ?? newID());
 }
