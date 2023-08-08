@@ -325,9 +325,9 @@ class RichEdit extends ChildWindow {
 
           // Head equals: add only tail (new lines):
           if (_listEquality.equals(newHead, allTextFormattedHead)) {
-            var allTextFormattedTail = allTextFormatted.sublist(headSz);
-            appendAllTextFormatted(allTextFormattedTail,
-                scrollToBottom: scrollToBottom);
+            var tail = newTextList.sublist(headSz);
+            assert(tail.isNotEmpty);
+            appendAllTextFormatted(tail, scrollToBottom: scrollToBottom);
             return true;
           }
         }
