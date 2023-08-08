@@ -197,6 +197,7 @@ class RichEdit extends ChildWindow {
       bool bold = false,
       bool italic = false,
       bool underline = false,
+      String? faceName,
       bool scrollToBottom = true}) {
     _onlyTextFormatted = false;
     _appendTextImpl(text,
@@ -204,6 +205,7 @@ class RichEdit extends ChildWindow {
         bold: bold,
         italic: italic,
         underline: underline,
+        faceName: faceName,
         scrollToBottom: scrollToBottom);
   }
 
@@ -212,6 +214,7 @@ class RichEdit extends ChildWindow {
       bool bold = false,
       bool italic = false,
       bool underline = false,
+      String? faceName,
       bool scrollToBottom = true}) {
     final cf = getCharFormat();
     final cfRef = cf.ref;
@@ -240,6 +243,11 @@ class RichEdit extends ChildWindow {
       cfRef.dwEffects |= CFE_UNDERLINE;
     }
 
+    if (faceName != null && faceName.isNotEmpty) {
+      cfRef.dwMask |= CFM_FACE;
+      cfRef.szFaceName = faceName;
+    }
+
     setCharFormat(cf);
 
     setCursorToBottom();
@@ -266,6 +274,7 @@ class RichEdit extends ChildWindow {
         italic: textFormatted.italic,
         underline: textFormatted.underline,
         color: textFormatted.color,
+        faceName: textFormatted.faceName,
         scrollToBottom: scrollToBottom);
   }
 
@@ -410,8 +419,11 @@ base class CHARFORMAT extends Struct {
     return String.fromCharCodes(charCodes);
   }
 
-  set szFaceName(String value) {
-    final stringToStore = value.padRight(LF_FACESIZE, '\x00');
+  set szFaceName(String name) {
+    if (name.length >= LF_FACESIZE) {
+      name = name.substring(0, LF_FACESIZE - 1);
+    }
+    final stringToStore = name.padRight(LF_FACESIZE, '\x00');
     for (var i = 0; i < LF_FACESIZE; i++) {
       _szFaceName[i] = stringToStore.codeUnitAt(i);
     }
@@ -422,18 +434,17 @@ base class CHARFORMAT extends Struct {
 class TextFormatted {
   final String text;
   final bool bold;
-
   final bool italic;
-
   final bool underline;
-
   final int? color;
+  final String? faceName;
 
   TextFormatted(this.text,
       {this.bold = false,
       this.italic = false,
       this.underline = false,
-      this.color});
+      this.color,
+      this.faceName});
 
   @override
   bool operator ==(Object other) =>
@@ -444,7 +455,8 @@ class TextFormatted {
           bold == other.bold &&
           italic == other.italic &&
           underline == other.underline &&
-          color == other.color;
+          color == other.color &&
+          faceName == other.faceName;
 
   @override
   int get hashCode =>
@@ -452,9 +464,10 @@ class TextFormatted {
       bold.hashCode ^
       italic.hashCode ^
       underline.hashCode ^
-      color.hashCode;
+      color.hashCode ^
+      faceName.hashCode;
 
   @override
   String toString() =>
-      'TextFormatted{bold: $bold, italic: $italic, underline: $underline, color: $color}<<$text>>';
+      'TextFormatted{bold: $bold, italic: $italic, underline: $underline, color: $color, faceName: $faceName}<<$text>>';
 }

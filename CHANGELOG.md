@@ -1,3 +1,7 @@
+## 1.0.5
+
+- `TextFormatted`: added `faceName`.
+
 ## 1.0.4
 
 - `Window`:

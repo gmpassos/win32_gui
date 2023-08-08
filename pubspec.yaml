@@ -1,6 +1,6 @@
 name: win32_gui
 description: Win32 API GUI in Object-Oriented style with some helpers. Uses package `win32` and `dart:ffi`.
-version: 1.0.4
+version: 1.0.5
 repository: https://github.com/gmpassos/win32_gui
 
 screenshots:
