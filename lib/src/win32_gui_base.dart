@@ -198,16 +198,31 @@ class WindowClass {
         {
           result = _setColors(wParam, scrollBarColors);
         }
+
+      case WM_CLOSE:
+        {
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          if (window != null) {
+            var processed = window.processClose(wParam, lParam);
+            window._notifyClose();
+            result = processed ? 0 : -1;
+          }
+        }
+
       case WM_DESTROY:
         {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
-          window?.processDestroy(wParam, lParam);
+          if (window != null) {
+            var processed = window.processDestroy(wParam, lParam);
+            result = processed ? 0 : -1;
+          }
         }
       case WM_NCDESTROY:
         {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           window?._notifyDestroyed();
         }
+
       default:
         {
           int? processed;
@@ -276,7 +291,7 @@ class WindowClass {
   }
 
   /// Unregisters a [window] with this [WindowClass].
-  /// - Called after [Window.onDestroy].
+  /// - Called after [Window.onDestroyed].
   bool unregisterWindow(Window window) {
     _allWindows.remove(window);
     return _windows.remove(window);
@@ -846,29 +861,44 @@ class Window {
   }
 
   /// Processes a [WM_DESTROY] message.
-  void processDestroy(int wParam, int lParam) {}
+  /// - Should return `true` if processed (default: `true`).
+  bool processClose(int wParam, int lParam) => true;
+
+  /// Processes a [WM_DESTROY] message.
+  /// - Should return `true` if processed (default: `true`).
+  bool processDestroy(int wParam, int lParam) => true;
 
   /// Processes a message.
   /// - Called by [WindowClass.windowProcDefault] when the messages doesn't have a default processor.
   /// - Should return a value if this messages was processed, or `null` to send to [DefWindowProc].
   int? processMessage(int hwnd, int uMsg, int wParam, int lParam) => null;
 
-  final StreamController<Window> _onDestroy = StreamController();
+  final StreamController<Window> _onClose = StreamController();
+
+  /// On close event (after [WM_CLOSE] message).
+  /// - Called by [WindowClass.windowProcDefault].
+  Stream<Window> get onClose => _onClose.stream;
+
+  void _notifyClose() {
+    _onClose.add(this);
+  }
+
+  final StreamController<Window> _onDestroyed = StreamController();
 
   /// On destroy event (after [WM_DESTROY] -> [WM_NCDESTROY] messages).
   /// - Called by [WindowClass.windowProcDefault].
-  Stream<Window> get onDestroy => _onDestroy.stream;
+  Stream<Window> get onDestroyed => _onDestroyed.stream;
 
   bool _destroyed = false;
 
   /// Returns `true` if the window was [destroy]ed and the `WM_NCDESTROY` was processed.
-  /// - See [onDestroy].
+  /// - See [onDestroyed].
   bool get isDestroyed => _destroyed;
 
   void _notifyDestroyed() {
     _destroyed = true;
 
-    _onDestroy.add(this);
+    _onDestroyed.add(this);
 
     var waitingDestroyed = _waitingDestroyed;
     if (waitingDestroyed != null && !waitingDestroyed.isCompleted) {

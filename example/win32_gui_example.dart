@@ -25,7 +25,12 @@ Future<void> main() async {
   print('-- mainWindow.show...');
   mainWindow.show();
 
-  mainWindow.onDestroy.listen((window) {
+  mainWindow.onClose.listen((window) {
+    print('-- Main Window closed> $window');
+    mainWindow.destroy();
+  });
+
+  mainWindow.onDestroyed.listen((window) {
     print('-- Main Window Destroyed> $window');
     exit(0);
   });

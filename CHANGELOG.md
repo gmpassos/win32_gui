@@ -1,3 +1,9 @@
+## 1.0.4
+
+- `Window`:
+  - Added `onClose` and `processClose`.
+  - Renamed `onDestroy` to `onDestroyed` (called after `WM_NCDESTROY`).
+
 ## 1.0.3
 
 - `Window`: added `redrawWindow`.
