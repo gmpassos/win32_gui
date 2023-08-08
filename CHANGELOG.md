@@ -4,6 +4,7 @@
   - Added `onClose` and `processClose`.
   - Renamed `onDestroy` to `onDestroyed` (called after `WM_NCDESTROY`).
   - Added `invalidateRect`.
+  - Default `repaint` calls `invalidateRect`.
 - `RichEdit`:
   - Optimize `setTextFormatted`.
 

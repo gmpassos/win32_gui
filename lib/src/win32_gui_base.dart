@@ -654,6 +654,7 @@ class Window {
 
   /// [Window] repaint procedure.
   void repaint(int hwnd, int hdc) {
+    invalidateRect();
     drawBG(hdc);
   }
 
