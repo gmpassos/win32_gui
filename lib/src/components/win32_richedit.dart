@@ -54,15 +54,16 @@ class RichEdit extends ChildWindow {
   /// The version of the loaded `RICHEDIT` library.
   int get version => _version;
 
-  RichEdit(
-      {super.id,
-      super.parent,
-      int x = CW_USEDEFAULT,
-      int y = CW_USEDEFAULT,
-      int width = CW_USEDEFAULT,
-      int height = CW_USEDEFAULT,
-      super.bgColor})
-      : super(
+  RichEdit({
+    super.id,
+    super.parent,
+    int x = CW_USEDEFAULT,
+    int y = CW_USEDEFAULT,
+    int width = CW_USEDEFAULT,
+    int height = CW_USEDEFAULT,
+    super.bgColor,
+    super.defaultRepaint,
+  }) : super(
           windowClass: switch (richEditLoadedVersion) {
             2 => windowClassRich2,
             1 => windowClassRich1,
