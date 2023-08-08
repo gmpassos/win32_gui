@@ -9,6 +9,7 @@ import 'package:resource_portable/resource.dart';
 import 'package:win32/win32.dart';
 
 import 'win32_constants.dart';
+import 'win32_constants_extra.dart';
 
 final _logWindow = logging.Logger('Win32:Window');
 
@@ -652,6 +653,28 @@ class Window {
   /// Updates this [Window].
   /// - Calls Win32 [UpdateWindow].
   bool updateWindow() => UpdateWindow(hwnd) == 1;
+
+  /// Redraws this [Window].
+  /// - Calls Win32 [RedrawWindow].
+  bool redrawWindow({math.Rectangle? rect, Pointer<RECT>? pRect, int? flags}) {
+    Pointer<RECT>? r;
+
+    if (rect != null) {
+      _rect.ref
+        ..top = rect.top.toInt()
+        ..right = rect.right.toInt()
+        ..bottom = rect.bottom.toInt()
+        ..left = rect.left.toInt();
+
+      r = _rect;
+    } else if (pRect != null) {
+      r = pRect;
+    }
+
+    flags ??= RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW;
+
+    return RedrawWindow(hwnd, r ?? nullptr, 0, flags) == 1;
+  }
 
   /// Shows this [Window].
   /// - Calls Win32 [ShowWindow].

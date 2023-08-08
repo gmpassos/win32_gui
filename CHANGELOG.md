@@ -1,3 +1,7 @@
+## 1.0.3
+
+- `Window`: added `redrawWindow`.
+
 ## 1.0.2
 
 - `WindowMessageLoop`: optimize `runLoopAsync` yield time.
