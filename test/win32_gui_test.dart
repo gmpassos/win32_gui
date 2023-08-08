@@ -53,7 +53,7 @@ void main() {
     // Ensure that the `test -c exe` exits:
     Future.delayed(Duration(seconds: 15), () {
       print('** Forcing exit(0).');
-      mainWindow.quit(0);
+      Window.quit(0);
       exit(0);
     });
 

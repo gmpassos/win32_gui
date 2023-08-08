@@ -683,7 +683,7 @@ class Window {
 
   /// Sends quit message with [exitCode].
   /// - Calls Win32 [PostQuitMessage].
-  void quit([int exitCode = 0]) {
+  static void quit([int exitCode = 0]) {
     PostQuitMessage(exitCode);
   }
 

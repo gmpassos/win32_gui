@@ -1,6 +1,7 @@
 ## 1.0.2
 
 - `WindowMessageLoop`: optimize `runLoopAsync` yield time.
+- Changed `Window.quit` to static.
 
 ## 1.0.1
 
