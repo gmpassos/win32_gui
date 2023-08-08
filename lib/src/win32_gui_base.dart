@@ -525,7 +525,7 @@ class Window {
       this.height,
       this.bgColor,
       this.hMenu,
-      this.defaultRepaint = true,
+      required this.defaultRepaint,
       this.parent}) {
     windowClass.register();
 
@@ -993,7 +993,7 @@ class ChildWindow extends Window {
     super.width,
     super.height,
     super.bgColor,
-    super.defaultRepaint,
+    required super.defaultRepaint,
     required super.parent,
   }) : super(hMenu: id ?? newID());
 }

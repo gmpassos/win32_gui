@@ -60,6 +60,7 @@ class MainWindow extends Window {
 
   MainWindow({super.width, super.height})
       : super(
+          defaultRepaint: false,
           windowName: 'Win32 GUI - Example',
           windowClass: mainWindowClass,
           windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,

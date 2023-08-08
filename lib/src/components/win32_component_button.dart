@@ -24,7 +24,7 @@ class Button extends ChildWindow {
       int width = CW_USEDEFAULT,
       int height = CW_USEDEFAULT,
       super.bgColor,
-      super.defaultRepaint,
+      super.defaultRepaint = true,
       this.onCommand})
       : super(
           windowClass: buttonWindowClass,
