@@ -36,7 +36,7 @@ class Button extends ChildWindow {
         );
 
   /// Calls [onCommand].
-  /// See [super.processCommand].
+  /// See [Window.processCommand].
   @override
   void processCommand(int hwnd, int hdc, int lParam) {
     _log.info('[hwnd: $hwnd, hdc: $hdc] processCommand> lParam: $lParam');

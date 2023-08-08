@@ -27,19 +27,19 @@ LoggerHandler _resolveLoggerHandler([LoggerHandler? loggerHandler]) {
   return loggerHandler ?? LoggerHandler.root;
 }
 
-/// Logs all [Logging] messages to [messageLogger].
+/// Logs all [logging] messages to [messageLogger].
 void logAllTo({MessageLogger? messageLogger, Object? logDestiny}) {
   var loggerHandler = _resolveLoggerHandler();
   loggerHandler.logAllTo(messageLogger: messageLogger, logDestiny: logDestiny);
 }
 
-/// Logs all [Logging] messages to console.
+/// Logs all [logging] messages to console.
 void logToConsole({bool enabled = true}) {
   var loggerHandler = _resolveLoggerHandler();
   loggerHandler.logToConsole(enabled: enabled);
 }
 
-/// Logs error [Logging] messages to [messageLogger].
+/// Logs error [logging] messages to [messageLogger].
 void logErrorTo(
     {MessageLogger? messageLogger,
     Object? logDestiny,
@@ -200,7 +200,7 @@ class LoggerHandler {
   }
 
   /// Logs all messages of this [logger].
-  /// - Sets [logger.level] to `ALL`.
+  /// - Sets [logging.Logger.level] to `ALL`.
   void logAll() {
     logging.hierarchicalLoggingEnabled = true;
     logger.level = logging.Level.ALL;
