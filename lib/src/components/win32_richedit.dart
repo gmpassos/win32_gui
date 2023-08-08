@@ -296,6 +296,7 @@ const LF_FACESIZE = 32;
 
  */
 
+/// [Struct] for [RichEdit.setCharFormat].
 base class CHARFORMAT extends Struct {
   @Uint32()
   external int cbSize;
@@ -341,6 +342,7 @@ base class CHARFORMAT extends Struct {
   }
 }
 
+/// A [RichEdit] text formatted.
 class TextFormatted {
   final String text;
   final bool bold;
@@ -356,6 +358,25 @@ class TextFormatted {
       this.italic = false,
       this.underline = false,
       this.color});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TextFormatted &&
+          runtimeType == other.runtimeType &&
+          text == other.text &&
+          bold == other.bold &&
+          italic == other.italic &&
+          underline == other.underline &&
+          color == other.color;
+
+  @override
+  int get hashCode =>
+      text.hashCode ^
+      bold.hashCode ^
+      italic.hashCode ^
+      underline.hashCode ^
+      color.hashCode;
 
   @override
   String toString() =>
