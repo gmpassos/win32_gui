@@ -104,6 +104,8 @@ class MainWindow extends Window {
 
     iconDartLogoPath = await Window.resolveFilePath(
         'package:win32_gui/resources/dart-icon.ico');
+
+    print('-- iconDartLogoPath: $iconDartLogoPath');
   }
 
   @override

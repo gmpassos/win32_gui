@@ -880,7 +880,7 @@ class Window {
     if (small) {
       var hIcon =
           LoadImage(NULL, iconPathPtr, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
-      sendMessage(WM_SETICON, ICON_SMALL, hIcon);
+      sendMessage(WM_SETICON, ICON_SMALL2, hIcon);
     }
 
     if (big) {
