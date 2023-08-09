@@ -983,12 +983,20 @@ class Window {
     DeleteObject(hMemDC);
   }
 
+  int? _iconSmall;
+  int? _iconBig;
+
   /// Sets this [Window] icon from [iconPath].
   ///
   /// - If [small] is true, sets a 16x16 icon.
   /// - If [big] is true, sets a 48x48 or 32x32 icon.
+  /// - If [cached] is true will load the icons using [loadIconCached], otherwise will call [loadIcon].
+  /// - If [force] is true will always call [sendMessage], even if the icon was already set to the same icon handler.
   void setIcon(String iconPath,
-      {bool small = true, bool big = true, bool cached = true}) {
+      {bool small = true,
+      bool big = true,
+      bool cached = true,
+      bool force = false}) {
     var loader = cached ? loadIconCached : loadIcon;
 
     if (small) {
@@ -996,7 +1004,11 @@ class Window {
       if (hIcon == 0) {
         hIcon = loader(iconPath, 32, 32);
       }
-      sendMessage(WM_SETICON, ICON_SMALL2, hIcon);
+
+      if (force || _iconSmall != hIcon) {
+        sendMessage(WM_SETICON, ICON_SMALL2, hIcon);
+        _iconSmall = hIcon;
+      }
     }
 
     if (big) {
@@ -1004,7 +1016,11 @@ class Window {
       if (hIcon == 0) {
         hIcon = loader(iconPath, 32, 32);
       }
-      sendMessage(WM_SETICON, ICON_BIG, hIcon);
+
+      if (force || _iconBig != hIcon) {
+        sendMessage(WM_SETICON, ICON_BIG, hIcon);
+        _iconBig = hIcon;
+      }
     }
   }
 
