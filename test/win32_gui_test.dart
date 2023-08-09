@@ -84,6 +84,9 @@ void main() {
 
       print('-- Checking if Not minimized');
       expect(mainWindow.isMinimized, isFalse);
+
+      // sleep 2s to show restore:
+      await Future.delayed(Duration(seconds: 2));
     }
 
     {
