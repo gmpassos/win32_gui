@@ -90,6 +90,10 @@ class Dialog<R> {
     return getDialogWithCreateId(createId, hwnd: nullHwnd ? null : hwnd);
   }
 
+  /// A [Pointer] to [Dialog.dialogProcDefault].
+  static final dialogProcDefaultPtr =
+      Pointer.fromFunction<DlgProc>(Dialog.dialogProcDefault, 0);
+
   /// Lookup a [Dialog] by `_createID`;
   static Dialog? getDialogWithCreateId(int createId,
       {int? hwnd, String? windowName}) {
@@ -103,20 +107,36 @@ class Dialog<R> {
   }
 
   int style;
+
+  /// The [Dialog] title.
   String? title;
 
+  /// The [Dialog] [x] coordinate.
   int? x;
+
+  /// The [Dialog] [y] coordinate.
   int? y;
+
+  /// The [Dialog] [width] dimension.
   int? width;
+
+  /// The [Dialog] [height] dimension.
   int? height;
 
+  /// The [Dialog] [fontName].
   String? fontName;
+
+  /// The [Dialog] [fontSize].
   int? fontSize;
 
+  /// The [Dialog] [items].
   final List<DialogItem> items;
 
+  /// The [Dialog] message processor function.
+  /// - Defaults to [Dialog.dialogProcDefault].
   final Pointer<NativeFunction<DlgProc>> dialogFunction;
 
+  /// The owner of this [Dialog].
   final Window? parent;
 
   /// The command of this [Dialog] when clicked.
@@ -132,10 +152,10 @@ class Dialog<R> {
     this.fontName,
     this.fontSize,
     this.items = const [],
-    required this.dialogFunction,
+    Pointer<NativeFunction<DlgProc>>? dialogFunction,
     this.parent,
     this.onCommand,
-  }) {
+  }) : dialogFunction = dialogFunction ?? dialogProcDefaultPtr {
     final title = this.title;
     if (title != null && title.isNotEmpty) {
       style |= WS_CAPTION;

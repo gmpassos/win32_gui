@@ -214,13 +214,10 @@ class TextOutput extends RichEdit {
 }
 
 class DialogConfirmExit extends Dialog {
-  static int dialogProc(int hwnd, int uMsg, int wParam, int lParam) {
-    return 0;
-  }
-
   DialogConfirmExit({required super.parent})
       : super(
-            dialogFunction: Pointer.fromFunction<DlgProc>(dialogProc, 0),
+            dialogFunction:
+                Pointer.fromFunction<DlgProc>(Dialog.dialogProcDefault, 0),
             title: 'Exit Confirmation',
             x: 0,
             y: 0,
