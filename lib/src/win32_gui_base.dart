@@ -477,27 +477,62 @@ class Window {
           maxConsecutiveDispatches: maxConsecutiveDispatches,
           condition: condition);
 
+  /// Resolves [path] to [Uri].
+  /// - See [Resource].
   static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
 
+  /// Resolves [path] to a local file path.
+  /// - See [Resource].
   static Future<String> resolveFilePath(String path) =>
       resolveFileUri(path).then((uri) => uri.toFilePath());
 
+  /// Returns the system fonts.
+  /// - Calls [SystemParametersInfo] [SPI_GETNONCLIENTMETRICS].
+  static Map<String, String> getSystemFonts() {
+    var ncm = calloc<NONCLIENTMETRICS>();
+    SystemParametersInfo(
+        SPI_GETNONCLIENTMETRICS, sizeOf<NONCLIENTMETRICS>(), ncm, 0);
+
+    var info = <String, String>{
+      'caption': ncm.ref.lfCaptionFont.lfFaceName,
+      'menu': ncm.ref.lfMenuFont.lfFaceName,
+      'message': ncm.ref.lfMessageFont.lfFaceName,
+      'status': ncm.ref.lfStatusFont.lfFaceName,
+    };
+
+    return info;
+  }
+
+  /// The [WindowClass] of this [Window].
   final WindowClass windowClass;
+
+  /// The name of this [Window]. If it's a frame this is the [Window] title.
   final String? windowName;
 
+  /// The style flags of this [Window] to pass to [CreateWindowEx].
   final int windowStyles;
 
+  /// The [x] coordinate of this [Window] when created.
   int? x;
+
+  /// The [y] coordinate of this [Window] when created.
   int? y;
+
+  /// The [width] of this [Window] when created.
   int? width;
+
+  /// The [height] of this [Window] when created.
   int? height;
 
+  /// The background color of this [Window] (if applicable).
   int? bgColor;
 
+  /// Returns `true` if this [Window] was created.
   bool get created => _hwnd != null;
 
   int? _hwnd;
 
+  /// The window handler ID (if [created]).
   int get hwnd {
     final hwnd = _hwnd;
     if (hwnd == null) {
@@ -506,9 +541,15 @@ class Window {
     return hwnd;
   }
 
+  /// Returns the window handler ID if [created] or `null`.
   int? get hwndIfCreated => _hwnd;
 
+  /// The [hMenu] parameter passed to [CreateWindowEx].
+  /// - If this is a [ChildWindow] this is the child element ID ([ChildWindow.id]).
   final int? hMenu;
+
+  /// The parent [Window] of this instance.
+  /// - See [ChildWindow].
   final Window? parent;
 
   /// If `true` will perform a default repaint and
@@ -541,6 +582,7 @@ class Window {
   Pointer<Utf16> get windowNameNative =>
       _windowNameNative ??= windowName?.toNativeUtf16() ?? nullptr;
 
+  /// Creates this [Window] (called by constructor).
   int create() {
     final hwnd = CreateWindowEx(
         // Optional window styles:

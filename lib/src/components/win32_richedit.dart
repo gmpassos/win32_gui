@@ -49,10 +49,21 @@ class RichEdit extends ChildWindow {
     className: 'RichEdit',
   );
 
+  static String? _defaultSystemFont;
+
+  static String get defaultSystemFont {
+    if (_defaultSystemFont != null) return _defaultSystemFont!;
+    var systemFonts = Window.getSystemFonts();
+    var def = systemFonts['caption'] ?? systemFonts['message'] ?? 'Arial';
+    return _defaultSystemFont = def;
+  }
+
   int _version = -1;
 
   /// The version of the loaded `RICHEDIT` library.
   int get version => _version;
+
+  String defaultFont;
 
   RichEdit({
     super.id,
@@ -63,7 +74,9 @@ class RichEdit extends ChildWindow {
     int height = CW_USEDEFAULT,
     super.bgColor,
     super.defaultRepaint = false,
-  }) : super(
+    String? defaultFont = 'Arial',
+  })  : defaultFont = defaultSystemFont,
+        super(
           windowClass: switch (richEditLoadedVersion) {
             2 => windowClassRich2,
             1 => windowClassRich1,
@@ -178,9 +191,9 @@ class RichEdit extends ChildWindow {
 
   /// Sets the [CHARFORMAT] of this [RichEdit].
   /// - Calls [sendMessage] [EM_SETCHARFORMAT].
-  bool setCharFormat(Pointer<CHARFORMAT> cf, [int range = SCF_SELECTION]) {
-    logInfo('setCharFormat', () => 'range: $range, cf: #${cf.address}');
-    return sendMessage(EM_SETCHARFORMAT, range, cf.address) == 1;
+  bool setCharFormat(Pointer<CHARFORMAT> cf, {int flags = SCF_SELECTION}) {
+    logInfo('setCharFormat', () => 'flags: $flags, cf: #${cf.address}');
+    return sendMessage(EM_SETCHARFORMAT, flags, cf.address) == 1;
   }
 
   /// Replaces the selection with [text].
@@ -246,6 +259,9 @@ class RichEdit extends ChildWindow {
     if (faceName != null && faceName.isNotEmpty) {
       cfRef.dwMask |= CFM_FACE;
       cfRef.szFaceName = faceName;
+    } else if (defaultFont.isNotEmpty) {
+      cfRef.dwMask |= CFM_FACE;
+      cfRef.szFaceName = defaultFont;
     }
 
     setCharFormat(cf);
