@@ -3,7 +3,11 @@
 - `TextFormatted`: added `faceName`.
 - `RichEdit`:
   - Added `defaultFont` and `defaultSystemFont`.
-- `Window`: added `getSystemDefaultFonts`.
+- `Window`:
+  - Added `getSystemDefaultFonts`.
+  - Added `minimize`, `maximize`, `restore`, `isMinimized`, `isMaximized` and `getWindowLongPtr`.
+  - Change close/processClose to allow abort of operation.
+  - Change destroy/processDestroy behavior.
 
 ## 1.0.4
 

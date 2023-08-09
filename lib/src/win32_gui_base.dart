@@ -209,13 +209,18 @@ class WindowClass {
         {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           if (window != null) {
-            var processed = window.processClose(wParam, lParam);
+            var shouldClose = window.processClose();
             window._notifyClose();
 
-            if (processed) {
+            if (shouldClose == null) {
+              result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+            } else if (shouldClose) {
+              if (!window.isMinimized) {
+                window.minimize();
+              }
               result = 0;
             } else {
-              result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+              result = 0;
             }
           }
         }
@@ -224,12 +229,8 @@ class WindowClass {
         {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           if (window != null) {
-            var processed = window.processDestroy(wParam, lParam);
-            if (processed) {
-              result = 0;
-            } else {
-              result = DefWindowProc(hwnd, uMsg, wParam, lParam);
-            }
+            window.processDestroy();
+            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
           }
         }
       case WM_NCDESTROY:
@@ -792,7 +793,7 @@ class Window {
   }
 
   /// Shows this [Window].
-  /// - Calls Win32 [ShowWindow].
+  /// - Calls Win32 [ShowWindow] [SW_SHOWNORMAL].
   void show() {
     ensureLoaded();
     final hwnd = this.hwnd;
@@ -801,13 +802,70 @@ class Window {
     updateWindow();
   }
 
-  /// Closes this [Window].
-  /// - Calls Win32 [CloseWindow].
-  void close() {
+  /// Minimizes this [Window].
+  /// - Calls Win32 [ShowWindow] [SW_MINIMIZE].
+  void minimize() {
     ensureLoaded();
     final hwnd = this.hwnd;
 
-    CloseWindow(hwnd);
+    ShowWindow(hwnd, SW_MINIMIZE);
+  }
+
+  /// Maximized this [Window].
+  /// - Calls Win32 [ShowWindow] [SW_MAXIMIZE].
+  void maximize() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    ShowWindow(hwnd, SW_MAXIMIZE);
+  }
+
+  /// Restores this [Window].
+  /// - Calls Win32 [ShowWindow] [SW_RESTORE].
+  void restore() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    ShowWindow(hwnd, SW_RESTORE);
+  }
+
+  /// Returns if this [Window] is minimized.
+  /// - See [getWindowLongPtr].
+  bool get isMinimized => (getWindowLongPtr(GWL_STYLE) & WS_MINIMIZE) != 0;
+
+  /// Returns if this [Window] is maximized.
+  /// - See [getWindowLongPtr].
+  bool get isMaximized => (getWindowLongPtr(GWL_STYLE) & WS_MAXIMIZE) != 0;
+
+  int getWindowLongPtr(int nIndex) {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+    return GetWindowLongPtr(hwnd, nIndex);
+  }
+
+  /// Closes this [Window].
+  /// - Calls Win32 [CloseWindow].
+  /// - Returns `true` (closed) and calls [CloseWindow] if `processClose` returns `null` (delegates to default behavior).
+  /// - Returns `false` (minimize) if `processClose` returns `true` (confirm close).
+  /// - Returns `null` (do nothing) if `processClose` returns `false` (abort close).
+  bool? close() {
+    ensureLoaded();
+    final hwnd = this.hwnd;
+
+    var shouldClose = processClose();
+    _notifyClose();
+
+    if (shouldClose == null) {
+      CloseWindow(hwnd);
+      return true;
+    } else if (shouldClose) {
+      if (!isMinimized) {
+        minimize();
+      }
+      return false;
+    } else {
+      return null;
+    }
   }
 
   /// Destroys this [Window].
@@ -952,13 +1010,14 @@ class Window {
     }
   }
 
-  /// Processes a [WM_DESTROY] message.
-  /// - Should return `true` if processed (default: `true`).
-  bool processClose(int wParam, int lParam) => true;
+  /// Processes a [WM_CLOSE] message or a [close] call.
+  /// - If returns `null` (not processed), will delegate to the default behavior of [DefWindowProc] (call [DestroyWindow]).
+  /// - If returns `true` tells to close the window (minimize).
+  /// - If returns `false` tells to abort the window closing (do nothing).
+  bool? processClose() => true;
 
   /// Processes a [WM_DESTROY] message.
-  /// - Should return `true` if processed (default: `true`).
-  bool processDestroy(int wParam, int lParam) => true;
+  void processDestroy() {}
 
   /// Processes a message.
   /// - Called by [WindowClass.windowProcDefault] when the messages doesn't have a default processor.

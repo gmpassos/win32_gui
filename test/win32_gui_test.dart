@@ -25,6 +25,12 @@ void main() {
     print('-- mainWindow.ensureLoaded...');
     await mainWindow.ensureLoaded();
 
+    var receivedOnClose = false;
+    mainWindow.onClose.listen((_) => receivedOnClose = true);
+
+    var receivedOnDestroyed = false;
+    mainWindow.onDestroyed.listen((_) => receivedOnDestroyed = true);
+
     print('-- mainWindow.show...');
     mainWindow.show();
 
@@ -35,20 +41,50 @@ void main() {
     print('-- Window.runMessageLoopAsync finished> messages: $messages');
 
     expect(mainWindow.isDestroyed, isFalse);
+    expect(mainWindow.textOutput.defaultFont, isNotEmpty);
 
-    print('-- Window.runMessageLoopAsync [destroy()]...');
+    var systemDefaultFonts = Window.getSystemDefaultFonts();
+    expect(systemDefaultFonts.keys,
+        unorderedEquals(['caption', 'menu', 'message', 'status']));
+    expect(systemDefaultFonts.values, everyElement(isNotEmpty));
 
-    var msgLoop = Window.runMessageLoopAsync(
-        timeout: Duration(seconds: 2),
-        condition: () => !mainWindow.isDestroyed);
+    {
+      print('-- Window.runMessageLoopAsync [close()]...');
+      expect(receivedOnClose, isFalse);
 
-    mainWindow.destroy();
+      var msgLoop = Window.runMessageLoopAsync(
+          timeout: Duration(seconds: 3), condition: () => !receivedOnClose);
 
-    print('-- Waiting: Window.runMessageLoopAsync...');
-    await msgLoop;
+      expect(receivedOnClose, isFalse);
+      mainWindow.close();
 
-    print('-- Checking `mainWindow.isDestroyed`');
-    expect(mainWindow.isDestroyed, isTrue);
+      print('-- Waiting: Window.runMessageLoopAsync [close()]...');
+      await msgLoop;
+
+      print('-- Checking if received `OnClose`');
+      expect(receivedOnClose, isTrue);
+
+      expect(mainWindow.isDestroyed, isFalse);
+    }
+
+    {
+      print('-- Window.runMessageLoopAsync [destroy()]...');
+      expect(receivedOnDestroyed, isFalse);
+
+      var msgLoop = Window.runMessageLoopAsync(
+          timeout: Duration(seconds: 3),
+          condition: () => !mainWindow.isDestroyed);
+
+      expect(receivedOnDestroyed, isFalse);
+      mainWindow.destroy();
+
+      print('-- Waiting: Window.runMessageLoopAsync [destroy()]...');
+      await msgLoop;
+
+      print('-- Checking `mainWindow.isDestroyed`');
+      expect(mainWindow.isDestroyed, isTrue);
+      expect(receivedOnDestroyed, isTrue);
+    }
 
     // Ensure that the `test -c exe` exits:
     Future.delayed(Duration(seconds: 15), () {
