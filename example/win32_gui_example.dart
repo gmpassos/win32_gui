@@ -40,6 +40,9 @@ Future<void> main() async {
 
     if (confirmed) {
       mainWindow.destroy();
+    } else {
+      mainWindow.showMessage(
+          'Application Status', 'Application window minimized.');
     }
   });
 

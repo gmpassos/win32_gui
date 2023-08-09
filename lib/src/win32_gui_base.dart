@@ -962,10 +962,10 @@ class Window {
     PostQuitMessage(exitCode);
   }
 
-  /// Shows an alert message dialog.
+  /// Shows a message dialog.
   /// - Calls Win32 [MessageBox].
   /// - See [showDialog].
-  int showAlert(String title, String text,
+  int showMessage(String title, String text,
       {int flags = 0,
       bool iconWarning = false,
       bool iconInformation = true,
