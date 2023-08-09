@@ -704,7 +704,7 @@ class Window {
     }
 
     _logWindow.info(
-        'Add child> #$hwnd<${windowClass.className}>[$windowName] -> ${child.hwnd}<${child.windowClass.className}>[${child.windowName}]');
+        'Add child> #$hwndIfCreated<${windowClass.className}>[$windowName] -> ${child.hwndIfCreated}<${child.windowClass.className}>[${child.windowName}]');
 
     _children.add(child);
   }
