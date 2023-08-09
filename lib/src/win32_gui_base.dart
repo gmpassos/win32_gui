@@ -490,10 +490,18 @@ class Window {
   /// - Calls [SystemParametersInfo] [SPI_GETNONCLIENTMETRICS].
   static Map<String, String> getSystemDefaultFonts() {
     var ncm = calloc<NONCLIENTMETRICS>();
-    SystemParametersInfo(
-        SPI_GETNONCLIENTMETRICS, sizeOf<NONCLIENTMETRICS>(), ncm, 0);
-
     var ncmRef = ncm.ref;
+
+    final ncmSz = sizeOf<NONCLIENTMETRICS>();
+    ncmRef.cbSize = ncmSz;
+
+    var ok = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmSz, ncm, 0) != 0;
+
+    if (!ok) {
+      var errorCode = GetLastError();
+      throw StateError(
+          "Can't call `SystemParametersInfo(SPI_GETNONCLIENTMETRICS...)`. Error: $errorCode");
+    }
 
     var info = <String, String>{
       'caption': ncmRef.lfCaptionFont.lfFaceName,
