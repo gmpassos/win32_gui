@@ -455,7 +455,7 @@ class TextFormatted {
   final int? color;
   final String? faceName;
 
-  TextFormatted(this.text,
+  const TextFormatted(this.text,
       {this.bold = false,
       this.italic = false,
       this.underline = false,

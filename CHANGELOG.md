@@ -3,6 +3,7 @@
 - `Window`:
   - Optimize `setIcon`.i
   - Added `loadIcon` and `loadIconCached`.
+- const `TextFormatted`
 
 ## 1.0.6
 
