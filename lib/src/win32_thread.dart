@@ -8,7 +8,8 @@ import 'package:win32/win32.dart';
 /// Handles Win32 Thread creation:
 class Win32Thread {
   /// Creates a Win32 Thread.
-  /// - [threadFunction] is the entrypoint function of the Thread.
+  /// - [threadFunction] is the entrypoint function of the Thread. Note that this can't
+  ///   be a Dart function, since it can't be called from a thread external to its `Isolate`.
   /// - [threadParam] is an optional parameter to be passed to [threadFunction].
   static ({int threadID, int hThread})? createThread(
       {required Pointer<NativeFunction<ThreadProc>> threadFunction,
