@@ -130,19 +130,32 @@ class WindowClass {
       case WM_CREATE:
         {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
-          if (window == null) {
+
+          // Lookup `Window` by `_createId`:
+          if (window == null && lParam != 0) {
             var createStructPtr = Pointer<CREATESTRUCT>.fromAddress(lParam);
             var createStruct = createStructPtr.ref;
 
-            var windowName = createStruct.lpszName.toDartString();
-            var hMenu = createStruct.hMenu;
-            var windowStyles = createStruct.style;
+            var createId = 0;
+            try {
+              createId = createStruct.lpCreateParams.cast<Uint32>().value;
+            } catch (e, s) {
+              _logWindow.severe(
+                  "Error resolving `_createId` for hWnd: $hwnd", e, s);
+            }
 
-            window = windowClass._windows.firstWhereOrNull((w) =>
-                !w.created &&
-                w.windowName == windowName &&
-                (w.hMenu ?? 0) == hMenu &&
-                w.windowStyles == windowStyles);
+            if (createId > 0 && createId <= Window._createIdCount) {
+              final windowName = createStruct.lpszName.toDartString();
+
+              window = windowClass._windows.singleWhereOrNull((w) =>
+                  w._hwnd == null &&
+                  w._createId == createId &&
+                  w.windowName == windowName);
+
+              if (window != null) {
+                window._hwnd = hwnd;
+              }
+            }
           }
 
           _logWindow.info("WM_CREATE> hwnd: $hwnd ; window: $window");
@@ -610,8 +623,15 @@ class Window {
   Pointer<Utf16> get windowNameNative =>
       _windowNameNative ??= windowName?.toNativeUtf16() ?? nullptr;
 
+  static int _createIdCount = 0;
+
+  final int _createId = ++_createIdCount;
+
   /// Creates this [Window] (called by constructor).
   int create() {
+    var createIdPtr = calloc<Uint32>();
+    createIdPtr.value = _createId;
+
     final hwnd = CreateWindowEx(
         // Optional window styles:
         0,
@@ -637,8 +657,8 @@ class Window {
         hMenu ?? NULL,
         // Instance handle:
         hInstance,
-        // Additional application data:
-        nullptr);
+        // Pass the `_createId`
+        createIdPtr);
 
     if (hwnd == 0) {
       var errorCode = GetLastError();
