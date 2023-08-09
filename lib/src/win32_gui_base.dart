@@ -449,6 +449,10 @@ class WindowMessageLoop {
     while (condition()) {
       var got = PeekMessage(msg, NULL, 0, 0, 1);
 
+      if (got == 0) {
+        got = PeekMessage(msg, NULL, 0, 0, 1);
+      }
+
       if (got != 0) {
         totalMsgCount++;
         noMsgCount = 0;
@@ -457,7 +461,7 @@ class WindowMessageLoop {
         TranslateMessage(msg);
         DispatchMessage(msg);
 
-        if (msgCount > 0 && msgCount % maxConsecutiveDispatches == 0) {
+        if ((msgCount % maxConsecutiveDispatches) == 0 && msgCount > 0) {
           if (initTime.timeOut(timeout)) break;
 
           await Future.delayed(yieldMS1);
@@ -470,8 +474,8 @@ class WindowMessageLoop {
           if (initTime.timeOut(timeout)) break;
 
           var yieldMS = switch (noMsgCount) {
-            > 30 => yieldMS30,
-            > 10 => yieldMS10,
+            > 300 => yieldMS30,
+            > 100 => yieldMS10,
             _ => yieldMS1,
           };
 
