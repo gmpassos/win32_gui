@@ -1,3 +1,8 @@
+## 1.0.8
+
+- `Window`:
+  - Added `setWindowRoundedCorners`
+
 ## 1.0.7
 
 - `Window`:

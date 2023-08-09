@@ -792,6 +792,28 @@ class Window {
     return InvalidateRect(hwnd, r ?? nullptr, eraseBg ? 1 : 0) != 0;
   }
 
+  /// Sets this [Window] rounded corners attributes.
+  /// - If [rounded] is `true` will set this [Window] with rounded corners,
+  ///   otherwise will disable the rounded corners.
+  /// - If [small] is `true` round the corners with a small radius.
+  void setWindowRoundedCorners({bool rounded = true, bool small = false}) {
+    final pref = calloc<DWORD>();
+    try {
+      final hwnd = this.hwnd;
+
+      final attr = DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE;
+      pref.value = rounded
+          ? (small
+              ? DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_ROUNDSMALL
+              : DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_ROUND)
+          : DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_DONOTROUND;
+
+      DwmSetWindowAttribute(hwnd, attr, pref, sizeOf<DWORD>());
+    } finally {
+      free(pref);
+    }
+  }
+
   /// Shows this [Window].
   /// - Calls Win32 [ShowWindow] [SW_SHOWNORMAL].
   void show() {
