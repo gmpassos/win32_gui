@@ -135,6 +135,8 @@ class WindowClass {
           if (window == null && lParam != 0) {
             window = windowClass.getWindowWithCreateIdPtr(hwnd, lParam,
                 nullHwnd: true, ptrIsCreateStruct: true);
+
+            window?._hwnd = hwnd;
           }
 
           _logWindow.info("WM_CREATE> hwnd: $hwnd ; window: $window");

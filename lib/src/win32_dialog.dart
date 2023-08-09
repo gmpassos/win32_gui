@@ -27,7 +27,9 @@ class Dialog<R> {
 
         // Lookup `Dialog` by `_createId`:
         if (dialog == null && lParam != 0) {
-          dialog ??= getDialogWithCreateIdPtr(hwnd, lParam, nullHwnd: true);
+          dialog = getDialogWithCreateIdPtr(hwnd, lParam, nullHwnd: true);
+
+          dialog?._hwnd = hwnd;
         }
 
         _logDialog.info("WM_INITDIALOG> hwnd: $hwnd ; window: $dialog");
@@ -147,7 +149,7 @@ class Dialog<R> {
   final void Function(int wParam, int lParam)? onCommand;
 
   Dialog({
-    this.style = WS_POPUP | WS_BORDER | WS_SYSMENU,
+    this.style = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE,
     this.title,
     this.x,
     this.y,
@@ -220,7 +222,7 @@ class Dialog<R> {
   /// - Allows @[override].
   int createDialogImpl(Pointer<Uint32> createIdPtr,
           Pointer<DLGTEMPLATE> dialogTemplatePtr) =>
-      DialogBoxIndirectParam(hInstance, dialogTemplatePtr,
+      CreateDialogIndirectParam(hInstance, dialogTemplatePtr,
           parent?.hwndIfCreated ?? NULL, dialogFunction, createIdPtr.address);
 
   /// Creates the [DLGTEMPLATE] used by [createDialogImpl].

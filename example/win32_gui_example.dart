@@ -223,8 +223,8 @@ class DialogConfirmExit extends Dialog {
             title: 'Exit Confirmation',
             x: 0,
             y: 0,
-            width: 300,
-            height: 400,
+            width: 250,
+            height: 200,
             items: [
               DialogItem(
                 style: WS_CHILD | WS_VISIBLE,
