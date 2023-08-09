@@ -74,8 +74,8 @@ class RichEdit extends ChildWindow {
     int height = CW_USEDEFAULT,
     super.bgColor,
     super.defaultRepaint = false,
-    String? defaultFont = 'Arial',
-  })  : defaultFont = defaultSystemFont,
+    String? defaultFont,
+  })  : defaultFont = defaultFont ?? defaultSystemFont,
         super(
           windowClass: switch (richEditLoadedVersion) {
             2 => windowClassRich2,
