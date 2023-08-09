@@ -962,14 +962,53 @@ class Window {
     PostQuitMessage(exitCode);
   }
 
+  /// Shows an alert message dialog.
+  /// - Calls Win32 [MessageBox].
+  /// - See [showDialog].
+  int showAlert(String title, String text,
+      {int flags = 0,
+      bool iconWarning = false,
+      bool iconInformation = true,
+      bool modal = false}) {
+    if (iconWarning) {
+      flags |= MB_ICONWARNING;
+    } else if (iconInformation) {
+      flags |= MB_ICONINFORMATION;
+    }
+
+    return showDialog(title, text, flags: flags, modal: modal);
+  }
+
   /// Shows a confirmation dialog.
   /// - Calls Win32 [MessageBox].
+  /// - See [showDialog].
   bool showConfirmationDialog(String title, String text,
-      {int flags = MB_ICONQUESTION | MB_YESNO}) {
+      {int flags = MB_ICONQUESTION,
+      bool okCancel = false,
+      bool yesNo = true,
+      bool cancel = false,
+      bool modal = false}) {
+    if (okCancel) {
+      flags |= MB_OKCANCEL;
+    } else if (yesNo) {
+      flags |= cancel ? MB_YESNOCANCEL : MB_YESNO;
+    }
+
+    return showDialog(title, text, flags: flags, modal: modal) == IDYES;
+  }
+
+  /// Shows a dialog.
+  /// - Calls Win32 [MessageBox].
+  int showDialog(String title, String text,
+      {int flags = 0, bool modal = false}) {
     final hwnd = this.hwnd;
 
     final titlePointer = title.toNativeUtf16();
     final textPointer = text.toNativeUtf16();
+
+    if (modal) {
+      flags |= MB_SYSTEMMODAL;
+    }
 
     final result = MessageBox(
       hwnd,
@@ -981,7 +1020,7 @@ class Window {
     free(titlePointer);
     free(textPointer);
 
-    return result == IDYES;
+    return result;
   }
 
   /// Paint operation: draws this [Window] background.
