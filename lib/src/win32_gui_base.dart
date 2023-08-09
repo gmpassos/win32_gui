@@ -163,21 +163,29 @@ class WindowClass {
           final hdc = GetDC(hwnd);
 
           if (windowClass.useDarkMode) {
+            var value = malloc<BOOL>()..value = 1;
+
             DwmSetWindowAttribute(
                 hwnd,
                 DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE,
-                malloc<BOOL>()..value = 1,
+                value,
                 sizeOf<BOOL>());
+
+            free(value);
           }
 
           final titleColor = windowClass.titleColor;
           if (titleColor != null) {
+            var value = malloc<COLORREF>()..value = titleColor;
+
             DwmSetWindowAttribute(
               hwnd,
               DWMWINDOWATTRIBUTE.DWMWA_CAPTION_COLOR,
-              malloc<COLORREF>()..value = titleColor,
+              value,
               sizeOf<COLORREF>(),
             );
+
+            free(value);
           }
 
           if (window != null) {
