@@ -391,7 +391,7 @@ class WindowClass {
 
   @override
   String toString() {
-    return 'WindowClass{className: $className, bgColor: $bgColor, useDarkMode: $useDarkMode, titleColor: $titleColor, windows: ${_windows.length}';
+    return 'WindowClass{className: $className, bgColor: $bgColor, useDarkMode: $useDarkMode, titleColor: $titleColor, windows: ${_windows.length}}';
   }
 }
 
@@ -578,7 +578,8 @@ class Window {
   int get hwnd {
     final hwnd = _hwnd;
     if (hwnd == null) {
-      throw StateError("Window not created! `hwnd` not defined.");
+      throw StateError(
+          "Window not created! `hwnd` not defined! Method `create()` should be called before use of `hwnd`.");
     }
     return hwnd;
   }
@@ -613,8 +614,6 @@ class Window {
     windowClass.register();
     windowClass.registerWindow(this);
 
-    create();
-
     parent?._addChild(this);
   }
 
@@ -627,8 +626,10 @@ class Window {
 
   final int _createId = ++_createIdCount;
 
-  /// Creates this [Window] (called by constructor).
-  int create() {
+  /// Creates this [Window].
+  Future<int> create({bool createChildren = true}) async {
+    await ensureLoaded();
+
     var createIdPtr = calloc<Uint32>();
     createIdPtr.value = _createId;
 
@@ -665,9 +666,20 @@ class Window {
       throw StateError("Can't create window> errorCode: $errorCode -> $this");
     }
 
+    if (_hwnd != null && _hwnd != hwnd) {
+      throw StateError(
+          "`WM_CREATE` `Window` lookup error: _hwnd:$_hwnd != hwnd:$hwnd");
+    }
+
     _hwnd = hwnd;
 
     _logWindow.info("Created Window #$hwnd: $this");
+
+    if (createChildren) {
+      for (var c in _children) {
+        await c.create();
+      }
+    }
 
     updateWindow();
 

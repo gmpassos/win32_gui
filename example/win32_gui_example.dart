@@ -19,8 +19,8 @@ Future<void> main() async {
     height: 480,
   );
 
-  print('-- mainWindow.ensureLoaded...');
-  await mainWindow.ensureLoaded();
+  print('-- mainWindow.create...');
+  await mainWindow.create();
 
   print('-- mainWindow.show...');
   mainWindow.show();
