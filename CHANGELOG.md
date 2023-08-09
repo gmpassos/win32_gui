@@ -5,6 +5,7 @@
 - `Window`:
   - Added `showMessage`, `showConfirmationDialog` and `showDialog`.
   - Free some pointers.
+- New `Dialog`.
 - New `Win32Thread`.
 
 ## 1.0.9

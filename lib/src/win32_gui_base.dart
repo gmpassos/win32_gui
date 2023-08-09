@@ -133,29 +133,8 @@ class WindowClass {
 
           // Lookup `Window` by `_createId`:
           if (window == null && lParam != 0) {
-            var createStructPtr = Pointer<CREATESTRUCT>.fromAddress(lParam);
-            var createStruct = createStructPtr.ref;
-
-            var createId = 0;
-            try {
-              createId = createStruct.lpCreateParams.cast<Uint32>().value;
-            } catch (e, s) {
-              _logWindow.severe(
-                  "Error resolving `_createId` for hWnd: $hwnd", e, s);
-            }
-
-            if (createId > 0 && createId <= Window._createIdCount) {
-              final windowName = createStruct.lpszName.toDartString();
-
-              window = windowClass._windows.singleWhereOrNull((w) =>
-                  w._hwnd == null &&
-                  w._createId == createId &&
-                  w.windowName == windowName);
-
-              if (window != null) {
-                window._hwnd = hwnd;
-              }
-            }
+            window = windowClass.getWindowWithCreateIdPtr(hwnd, lParam,
+                nullHwnd: true, ptrIsCreateStruct: true);
           }
 
           _logWindow.info("WM_CREATE> hwnd: $hwnd ; window: $window");
@@ -188,8 +167,14 @@ class WindowClass {
             free(value);
           }
 
+          // Window found, build it:
           if (window != null) {
             window.callBuild(hdc: hdc);
+            result = 0;
+          }
+          // Missing window, destroy it:
+          else {
+            result = -1;
           }
 
           ReleaseDC(hwnd, hdc);
@@ -218,7 +203,7 @@ class WindowClass {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           if (window != null) {
             final hdc = GetDC(hwnd);
-            window.processCommand(hwnd, hdc, lParam);
+            window.processCommand(hwnd, hdc, wParam, lParam);
             ReleaseDC(hwnd, hdc);
           }
         }
@@ -295,6 +280,58 @@ class WindowClass {
     }
 
     return result;
+  }
+
+  /// Lookup a [Window] by `createID` in [CREATESTRUCT] pointer;
+  Window? getWindowWithCreateIdPtr(int hwnd, int createIdPtrAddress,
+      {required bool nullHwnd, required bool ptrIsCreateStruct}) {
+    Pointer<Uint32> createIdPtr;
+    String? windowName;
+
+    if (ptrIsCreateStruct) {
+      var createStructPtr =
+          Pointer<CREATESTRUCT>.fromAddress(createIdPtrAddress);
+      var createStruct = createStructPtr.ref;
+
+      windowName = createStruct.lpszName.toDartString();
+
+      try {
+        createIdPtr = createStruct.lpCreateParams.cast<Uint32>();
+      } catch (e, s) {
+        _logWindow.severe(
+            "Error resolving `createId` pointer from `CREATESTRUCT` to hWnd: $hwnd",
+            e,
+            s);
+        return null;
+      }
+    } else {
+      try {
+        createIdPtr = Pointer<Uint32>.fromAddress(createIdPtrAddress);
+      } catch (e, s) {
+        _logWindow.severe(
+            "Error resolving `createId` pointer to hWnd: $hwnd", e, s);
+        return null;
+      }
+    }
+
+    var createId = createIdPtr.value;
+
+    return getWindowWithCreateId(createId,
+        hwnd: nullHwnd ? null : hwnd, windowName: windowName);
+  }
+
+  /// Lookup a [Window] by `_createID`;
+  Window? getWindowWithCreateId(int createId, {int? hwnd, String? windowName}) {
+    if (createId > 0 && createId <= Window._createIdCount) {
+      return _windows.firstWhereOrNull(
+        (w) =>
+            w._createId == createId &&
+            w._hwnd == hwnd &&
+            (windowName == null || w.windowName == windowName),
+      );
+    }
+
+    return null;
   }
 
   static int _setColors(int hdc, WindowClassColors? colors) {
@@ -640,36 +677,10 @@ class Window {
   Future<int> create({bool createChildren = true}) async {
     await ensureLoaded();
 
-    var createIdPtr = calloc<Uint32>();
+    final createIdPtr = calloc<Uint32>();
     createIdPtr.value = _createId;
 
-    final hwnd = CreateWindowEx(
-        // Optional window styles:
-        0,
-
-        // Window class:
-        windowClass.classNameNative,
-
-        // Window text:
-        windowNameNative,
-
-        // Window style:
-        windowStyles,
-
-        // Size and position:
-        x ?? CW_USEDEFAULT,
-        y ?? CW_USEDEFAULT,
-        width ?? CW_USEDEFAULT,
-        height ?? CW_USEDEFAULT,
-
-        // Parent window:
-        parent?._hwnd ?? NULL,
-        // Menu:
-        hMenu ?? NULL,
-        // Instance handle:
-        hInstance,
-        // Pass the `_createId`
-        createIdPtr);
+    final hwnd = createWindowImpl(createIdPtr);
 
     if (hwnd == 0) {
       var errorCode = GetLastError();
@@ -695,6 +706,37 @@ class Window {
 
     return hwnd;
   }
+
+  /// Window creation implementation.
+  /// - Calls Win32 [CreateWindowEx] by default.
+  /// - Allows @[override].
+  int createWindowImpl(Pointer<Uint32> createIdPtr) => CreateWindowEx(
+      // Optional window styles:
+      0,
+
+      // Window class:
+      windowClass.classNameNative,
+
+      // Window text:
+      windowNameNative,
+
+      // Window style:
+      windowStyles,
+
+      // Size and position:
+      x ?? CW_USEDEFAULT,
+      y ?? CW_USEDEFAULT,
+      width ?? CW_USEDEFAULT,
+      height ?? CW_USEDEFAULT,
+
+      // Parent window:
+      parent?._hwnd ?? NULL,
+      // Menu:
+      hMenu ?? NULL,
+      // Instance handle:
+      hInstance,
+      // Pass the `_createId`
+      createIdPtr);
 
   final List<Window> _children = [];
 
@@ -1179,10 +1221,10 @@ class Window {
   }
 
   /// Processes a [WM_COMMAND] message. Also calls [processCommand] for [children] [Window]s.
-  void processCommand(int hwnd, int hdc, int lParam) {
+  void processCommand(int hwnd, int hdc, int wParam, int lParam) {
     for (var child in _children) {
       if (child._hwnd == lParam) {
-        child.processCommand(hwnd, hdc, lParam);
+        child.processCommand(hwnd, hdc, wParam, lParam);
       }
     }
   }

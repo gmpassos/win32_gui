@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:win32_gui/src/win32_dialog.dart';
 import 'package:win32_gui/win32_gui.dart';
 import 'package:win32_gui/win32_gui_logging.dart';
 
@@ -31,9 +32,16 @@ Future<void> main() async {
   mainWindow.show();
 
   // When the window is closed (won't be destroyed):
-  mainWindow.onClose.listen((window) {
+  mainWindow.onClose.listen((window) async {
     print('-- Main Window closed> $window');
     print('-- Main Window isMinimized> ${mainWindow.isMinimized}');
+
+    var dialogConfirmExit = DialogConfirmExit();
+    dialogConfirmExit.create();
+
+    var result = await dialogConfirmExit.waitResult();
+
+    print('** DialogConfirmExit result: $result');
 
     var confirmed = mainWindow.showConfirmationDialog(
         "Exit Confirmation", "Exit Application?");
@@ -94,7 +102,7 @@ class MainWindow extends Window {
         y: 414,
         width: 100,
         height: 32,
-        onCommand: (p) => print('** Button OK Click!'));
+        onCommand: (w, l) => print('** Button OK Click!'));
 
     // The exit button (`destroy` this Window).
     buttonExit = Button(
@@ -104,7 +112,7 @@ class MainWindow extends Window {
         y: 414,
         width: 100,
         height: 32,
-        onCommand: (p) {
+        onCommand: (w, l) {
           print('** Button Exit Click!');
           destroy();
         });
@@ -203,4 +211,45 @@ class TextOutput extends RichEdit {
           color: RGB(255, 255, 255)),
     ]);
   }
+}
+
+class DialogConfirmExit extends Dialog {
+  static int dialogProc(int hwnd, int uMsg, int wParam, int lParam) {
+    return 0;
+  }
+
+  DialogConfirmExit()
+      : super(
+            dialogFunction: Pointer.fromFunction<DlgProc>(dialogProc, 0),
+            title: 'Exit Confirmation',
+            items: [
+              DialogItem(
+                style: WS_CHILD | WS_VISIBLE,
+                x: 10,
+                y: 10,
+                width: 100,
+                height: 32,
+                id: 0,
+                windowClass: 'static',
+                text: 'Exit Application?',
+              ),
+              DialogItem(
+                style: WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+                x: 4,
+                y: 50,
+                width: 100,
+                height: 32,
+                id: 1,
+                text: 'Yes',
+              ),
+              DialogItem(
+                style: WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+                x: 4 + 100 + 4,
+                y: 50,
+                width: 100,
+                height: 32,
+                id: -1,
+                text: 'No',
+              ),
+            ]);
 }

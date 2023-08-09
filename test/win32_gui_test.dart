@@ -158,7 +158,7 @@ class _MainWindow extends Window {
         y: 414,
         width: 100,
         height: 32,
-        onCommand: (p) => print('** Button OK Click!'));
+        onCommand: (w, l) => print('** Button OK Click!'));
 
     buttonExit = Button(
         label: 'Exit',
@@ -167,7 +167,7 @@ class _MainWindow extends Window {
         y: 414,
         width: 100,
         height: 32,
-        onCommand: (p) {
+        onCommand: (w, l) {
           print('** Button Exit Click!');
         });
 
