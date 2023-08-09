@@ -171,7 +171,7 @@ class TextOutput extends RichEdit {
     setTextFormatted([
       TextFormatted(" -------------------------\r\n",
           color: RGB(255, 255, 255)),
-      TextFormatted(" Hello", color: RGB(0, 255, 255), faceName: 'monospace'),
+      TextFormatted(" Hello", color: RGB(0, 255, 255), faceName: 'Courier New'),
       TextFormatted(" Word! \r\n", color: RGB(0, 255, 0)),
       TextFormatted(" -------------------------\r\n",
           color: RGB(255, 255, 255)),
