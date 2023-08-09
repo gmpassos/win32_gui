@@ -27,7 +27,7 @@ Future<void> main() async {
 
   mainWindow.onClose.listen((window) {
     print('-- Main Window closed> $window');
-    mainWindow.destroy();
+    print('-- Main Window isMinimized> ${mainWindow.isMinimized}');
   });
 
   mainWindow.onDestroyed.listen((window) {

@@ -65,6 +65,25 @@ void main() {
       expect(receivedOnClose, isTrue);
 
       expect(mainWindow.isDestroyed, isFalse);
+      expect(mainWindow.isMinimized, isTrue);
+    }
+
+    {
+      print('-- Window.runMessageLoopAsync [restore()]...');
+      expect(mainWindow.isMinimized, isTrue);
+
+      var msgLoop = Window.runMessageLoopAsync(
+          timeout: Duration(seconds: 3),
+          condition: () => mainWindow.isMinimized);
+
+      expect(mainWindow.isMinimized, isTrue);
+      mainWindow.restore();
+
+      print('-- Waiting: Window.runMessageLoopAsync [restore()]...');
+      await msgLoop;
+
+      print('-- Checking if Not minimized');
+      expect(mainWindow.isMinimized, isFalse);
     }
 
     {
