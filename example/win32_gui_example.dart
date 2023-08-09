@@ -36,13 +36,6 @@ Future<void> main() async {
     print('-- Main Window closed> $window');
     print('-- Main Window isMinimized> ${mainWindow.isMinimized}');
 
-    var dialogConfirmExit = DialogConfirmExit(parent: mainWindow);
-    dialogConfirmExit.create();
-
-    var result = await dialogConfirmExit.waitResult();
-
-    print('** DialogConfirmExit result: $result');
-
     var confirmed = mainWindow.showConfirmationDialog(
         "Exit Confirmation", "Exit Application?");
 
@@ -102,7 +95,16 @@ class MainWindow extends Window {
         y: 414,
         width: 100,
         height: 32,
-        onCommand: (w, l) => print('** Button OK Click!'));
+        onCommand: (w, l) async {
+          print('** Button OK Click!');
+
+          var dialogConfirmExit = DialogConfirmExit(parent: this);
+          dialogConfirmExit.create();
+
+          var result = await dialogConfirmExit.waitResult();
+
+          print('** DialogConfirmExit result: $result');
+        });
 
     // The exit button (`destroy` this Window).
     buttonExit = Button(
