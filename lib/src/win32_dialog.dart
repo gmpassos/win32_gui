@@ -216,7 +216,7 @@ class Dialog<R> {
   /// - Allows @[override].
   int createDialogImpl(Pointer<Uint32> createIdPtr,
           Pointer<DLGTEMPLATE> dialogTemplatePtr) =>
-      CreateDialogIndirectParam(hInstance, dialogTemplatePtr,
+      DialogBoxIndirectParam(hInstance, dialogTemplatePtr,
           parent?.hwndIfCreated ?? NULL, dialogFunction, createIdPtr.address);
 
   /// Creates the [DLGTEMPLATE] used by [createDialogImpl].
