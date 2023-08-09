@@ -195,12 +195,11 @@ class _MainWindow extends Window {
     SetTextColor(hdc, RGB(255, 255, 255));
     SetBkColor(hdc, RGB(96, 96, 96));
 
-    // Some extra build...
+    setIcon(iconDartLogoPath);
   }
 
   @override
   void repaint(int hwnd, int hdc) {
-    setIcon(iconDartLogoPath);
     var hBitmap = loadImageCached(imageDartLogoPath);
     var imgDimension = getBitmapDimension(hBitmap);
 
