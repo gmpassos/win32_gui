@@ -1,3 +1,8 @@
+## 1.0.10
+
+- Improve `README.md` usage code.
+- `win32_gui_example.dart`: improve comments.
+
 ## 1.0.9
 
 - `WindowMessageLoop.runLoopAsync`: adjust maximum yield time. 

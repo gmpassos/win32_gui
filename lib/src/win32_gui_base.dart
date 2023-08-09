@@ -1057,13 +1057,12 @@ class Window {
   }
 
   /// Paint operation: draws [hBitmap] at coordinates [x], [y].
+  /// - Calls Win32 [BitBlt] to copy the Bitmap bytes to this [Window].
   void drawImage(int hdc, int hBitmap, int x, int y, int width, int height) {
     final hMemDC = CreateCompatibleDC(hdc);
 
     SelectObject(hMemDC, hBitmap);
-
     BitBlt(hdc, x, y, width, height, hMemDC, 0, 0, SRCCOPY);
-
     DeleteObject(hMemDC);
   }
 
