@@ -147,7 +147,9 @@ class MainWindow extends Window {
 
 class TextOutput extends RichEdit {
   TextOutput({super.parent, super.x, super.y, super.width, super.height})
-      : super(bgColor: RGB(32, 32, 32));
+      : super(bgColor: RGB(32, 32, 32)) {
+    print('-- `TextOutput` default font: `$defaultFont`');
+  }
 
   @override
   void build(int hwnd, int hdc) {
