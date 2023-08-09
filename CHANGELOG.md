@@ -2,6 +2,7 @@
 
 - `Window`:
   - Added `setWindowRoundedCorners`
+  - Fix `create` behavior.
 
 ## 1.0.7
 

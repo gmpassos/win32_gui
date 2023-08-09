@@ -22,8 +22,8 @@ void main() {
       height: 480,
     );
 
-    print('-- mainWindow.ensureLoaded...');
-    await mainWindow.ensureLoaded();
+    print('-- mainWindow.create...');
+    await mainWindow.create();
 
     var receivedOnClose = false;
     mainWindow.onClose.listen((_) => receivedOnClose = true);
