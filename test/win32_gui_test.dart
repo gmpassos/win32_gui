@@ -66,6 +66,9 @@ void main() {
 
       expect(mainWindow.isDestroyed, isFalse);
       expect(mainWindow.isMinimized, isTrue);
+
+      // Process messages for 2s to show close:
+      Window.runMessageLoopAsync(timeout: Duration(seconds: 2));
     }
 
     {
