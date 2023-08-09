@@ -127,6 +127,8 @@ class Dialog<R> {
     this.title,
     this.x,
     this.y,
+    this.width,
+    this.height,
     this.fontName,
     this.fontSize,
     this.items = const [],

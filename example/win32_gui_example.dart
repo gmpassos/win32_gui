@@ -36,7 +36,7 @@ Future<void> main() async {
     print('-- Main Window closed> $window');
     print('-- Main Window isMinimized> ${mainWindow.isMinimized}');
 
-    var dialogConfirmExit = DialogConfirmExit();
+    var dialogConfirmExit = DialogConfirmExit(parent: mainWindow);
     dialogConfirmExit.create();
 
     var result = await dialogConfirmExit.waitResult();
@@ -218,10 +218,14 @@ class DialogConfirmExit extends Dialog {
     return 0;
   }
 
-  DialogConfirmExit()
+  DialogConfirmExit({required super.parent})
       : super(
             dialogFunction: Pointer.fromFunction<DlgProc>(dialogProc, 0),
             title: 'Exit Confirmation',
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 400,
             items: [
               DialogItem(
                 style: WS_CHILD | WS_VISIBLE,
