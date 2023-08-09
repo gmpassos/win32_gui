@@ -129,6 +129,18 @@ class WindowClass {
     switch (uMsg) {
       case WM_CREATE:
         {
+          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
+          if (window == null) {
+            var createStructPtr = Pointer<CREATESTRUCT>.fromAddress(lParam);
+            var createStruct = createStructPtr.ref;
+
+            var windowName = createStruct.lpszName.toDartString();
+            var hMenu = createStruct.hMenu;
+
+            window = windowClass._windows.firstWhereOrNull((w) =>
+                !w.created && w.windowName == windowName && w.hMenu == hMenu);
+          }
+
           final hdc = GetDC(hwnd);
 
           if (windowClass.useDarkMode) {
@@ -149,7 +161,6 @@ class WindowClass {
             );
           }
 
-          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           if (window != null) {
             window.callBuild(hdc: hdc);
           }
@@ -679,6 +690,8 @@ class Window {
   bool callBuild({int? hdc}) {
     ensureLoaded();
     final hwnd = this.hwnd;
+
+    _logWindow.info("Building Window> $this");
 
     if (hdc == null) {
       final hdc = GetDC(hwnd);
