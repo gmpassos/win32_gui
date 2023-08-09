@@ -141,7 +141,7 @@ class WindowClass {
             window = windowClass._windows.firstWhereOrNull((w) =>
                 !w.created &&
                 w.windowName == windowName &&
-                w.hMenu == hMenu &&
+                (w.hMenu ?? 0) == hMenu &&
                 w.windowStyles == windowStyles);
           }
 
