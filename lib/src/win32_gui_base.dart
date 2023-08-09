@@ -136,10 +136,16 @@ class WindowClass {
 
             var windowName = createStruct.lpszName.toDartString();
             var hMenu = createStruct.hMenu;
+            var windowStyles = createStruct.style;
 
             window = windowClass._windows.firstWhereOrNull((w) =>
-                !w.created && w.windowName == windowName && w.hMenu == hMenu);
+                !w.created &&
+                w.windowName == windowName &&
+                w.hMenu == hMenu &&
+                w.windowStyles == windowStyles);
           }
+
+          _logWindow.info("WM_CREATE> hwnd: $hwnd ; window: $window");
 
           final hdc = GetDC(hwnd);
 
