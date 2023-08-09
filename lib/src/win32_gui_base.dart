@@ -663,7 +663,7 @@ class Window {
       throw StateError("Child already added: $child");
     }
 
-    print('-- Add child: $this -> $child');
+    _logWindow.info('Add child> $this -> $child');
 
     _children.add(child);
   }
@@ -673,15 +673,9 @@ class Window {
   Future<void> ensureLoaded() => _loadCall ??= _callLoad();
 
   Future<void> _callLoad() async {
-    print('-- _callLoad> $this');
-
     await load();
 
-    print('-- Loaded> $this');
-
     for (var child in _children) {
-      print('-- Loading child> $child');
-
       await child.ensureLoaded();
     }
   }

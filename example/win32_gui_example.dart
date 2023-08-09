@@ -115,7 +115,7 @@ class MainWindow extends Window {
     SetTextColor(hdc, RGB(255, 255, 255));
     SetBkColor(hdc, RGB(96, 96, 96));
 
-    setWindowRoundedCorners(small: true);
+    setWindowRoundedCorners();
   }
 
   @override
