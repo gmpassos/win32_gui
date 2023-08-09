@@ -34,6 +34,13 @@ Future<void> main() async {
   mainWindow.onClose.listen((window) {
     print('-- Main Window closed> $window');
     print('-- Main Window isMinimized> ${mainWindow.isMinimized}');
+
+    var confirmed = mainWindow.showConfirmationDialog(
+        "Exit Confirmation", "Exit Application?");
+
+    if (confirmed) {
+      mainWindow.destroy();
+    }
   });
 
   // When the window is destroyed `exit`:
