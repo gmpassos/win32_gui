@@ -424,7 +424,6 @@ class WindowMessageLoop {
   static const yieldMS1 = Duration(milliseconds: 1);
   static const yieldMS10 = Duration(milliseconds: 10);
   static const yieldMS30 = Duration(milliseconds: 30);
-  static const yieldMS100 = Duration(milliseconds: 100);
 
   /// Runs a [Window] message loop capable to [timeout] and also
   /// allows Dart [Future]s to be processed while processing messages.
@@ -471,7 +470,6 @@ class WindowMessageLoop {
           if (initTime.timeOut(timeout)) break;
 
           var yieldMS = switch (noMsgCount) {
-            > 1000 => yieldMS100,
             > 30 => yieldMS30,
             > 10 => yieldMS10,
             _ => yieldMS1,

@@ -1,3 +1,7 @@
+## 1.0.9
+
+- `WindowMessageLoop.runLoopAsync`: adjust maximum yield time. 
+
 ## 1.0.8
 
 - `Window`:
