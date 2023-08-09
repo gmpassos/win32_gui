@@ -818,6 +818,7 @@ class Window {
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_MAXIMIZE);
+    updateWindow();
   }
 
   /// Restores this [Window].
@@ -827,6 +828,7 @@ class Window {
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_RESTORE);
+    updateWindow();
   }
 
   /// Returns if this [Window] is minimized.

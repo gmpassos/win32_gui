@@ -240,6 +240,8 @@ class _TextOutput extends RichEdit {
 
   @override
   void repaint(int hwnd, int hdc) {
+    invalidateRect();
+
     setBkColor(RGB(32, 32, 32));
     setTextColor(hdc, RGB(255, 255, 255));
 
