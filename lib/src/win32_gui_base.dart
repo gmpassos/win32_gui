@@ -703,7 +703,8 @@ class Window {
       throw StateError("Child already added: $child");
     }
 
-    _logWindow.info('Add child> $this -> $child');
+    _logWindow.info(
+        'Add child> #$hwnd<${windowClass.className}>[$windowName] -> ${child.hwnd}<${child.windowClass.className}>[${child.windowName}]');
 
     _children.add(child);
   }
