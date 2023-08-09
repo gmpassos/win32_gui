@@ -53,8 +53,8 @@ class RichEdit extends ChildWindow {
 
   static String get defaultSystemFont {
     if (_defaultSystemFont != null) return _defaultSystemFont!;
-    var systemFonts = Window.getSystemFonts();
-    var def = systemFonts['caption'] ?? systemFonts['message'] ?? 'Arial';
+    var sysDefFonts = Window.getSystemDefaultFonts();
+    var def = sysDefFonts['caption'] ?? sysDefFonts['message'] ?? 'Arial';
     return _defaultSystemFont = def;
   }
 

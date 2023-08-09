@@ -3,7 +3,7 @@
 - `TextFormatted`: added `faceName`.
 - `RichEdit`:
   - Added `defaultFont` and `defaultSystemFont`.
-- `Window`: added `getSystemFonts`.
+- `Window`: added `getSystemDefaultFonts`.
 
 ## 1.0.4
 

@@ -488,7 +488,7 @@ class Window {
 
   /// Returns the system fonts.
   /// - Calls [SystemParametersInfo] [SPI_GETNONCLIENTMETRICS].
-  static Map<String, String> getSystemFonts() {
+  static Map<String, String> getSystemDefaultFonts() {
     var ncm = calloc<NONCLIENTMETRICS>();
     SystemParametersInfo(
         SPI_GETNONCLIENTMETRICS, sizeOf<NONCLIENTMETRICS>(), ncm, 0);
