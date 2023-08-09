@@ -581,10 +581,9 @@ class Window {
       required this.defaultRepaint,
       this.parent}) {
     windowClass.register();
+    windowClass.registerWindow(this);
 
     create();
-
-    windowClass.registerWindow(this);
 
     parent?._addChild(this);
   }
@@ -630,6 +629,9 @@ class Window {
     }
 
     _hwnd = hwnd;
+
+    _logWindow.info("Created Window #$hwnd: $this");
+
     updateWindow();
 
     return hwnd;
@@ -801,14 +803,18 @@ class Window {
     try {
       final hwnd = this.hwnd;
 
-      final attr = DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE;
       pref.value = rounded
           ? (small
               ? DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_ROUNDSMALL
               : DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_ROUND)
           : DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_DONOTROUND;
 
-      DwmSetWindowAttribute(hwnd, attr, pref, sizeOf<DWORD>());
+      DwmSetWindowAttribute(
+        hwnd,
+        DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE,
+        pref,
+        sizeOf<DWORD>(),
+      );
     } finally {
       free(pref);
     }
