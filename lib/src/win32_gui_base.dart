@@ -493,13 +493,16 @@ class Window {
     SystemParametersInfo(
         SPI_GETNONCLIENTMETRICS, sizeOf<NONCLIENTMETRICS>(), ncm, 0);
 
+    var ncmRef = ncm.ref;
+
     var info = <String, String>{
-      'caption': ncm.ref.lfCaptionFont.lfFaceName,
-      'menu': ncm.ref.lfMenuFont.lfFaceName,
-      'message': ncm.ref.lfMessageFont.lfFaceName,
-      'status': ncm.ref.lfStatusFont.lfFaceName,
+      'caption': ncmRef.lfCaptionFont.lfFaceName,
+      'menu': ncmRef.lfMenuFont.lfFaceName,
+      'message': ncmRef.lfMessageFont.lfFaceName,
+      'status': ncmRef.lfStatusFont.lfFaceName,
     };
 
+    free(ncm);
     return info;
   }
 
