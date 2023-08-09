@@ -986,21 +986,41 @@ class Window {
   /// Sets this [Window] icon from [iconPath].
   ///
   /// - If [small] is true, sets a 16x16 icon.
-  /// - If [big] is true, sets a 32x32 icon.
-  void setIcon(String iconPath, {bool small = true, bool big = true}) {
-    var iconPathPtr = iconPath.toNativeUtf16();
+  /// - If [big] is true, sets a 48x48 or 32x32 icon.
+  void setIcon(String iconPath,
+      {bool small = true, bool big = true, bool cached = true}) {
+    var loader = cached ? loadIconCached : loadIcon;
 
     if (small) {
-      var hIcon =
-          LoadImage(NULL, iconPathPtr, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+      var hIcon = loader(iconPath, 16, 16);
+      if (hIcon == 0) {
+        hIcon = loader(iconPath, 32, 32);
+      }
       sendMessage(WM_SETICON, ICON_SMALL2, hIcon);
     }
 
     if (big) {
-      var hIcon =
-          LoadImage(NULL, iconPathPtr, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+      var hIcon = loader(iconPath, 48, 48);
+      if (hIcon == 0) {
+        hIcon = loader(iconPath, 32, 32);
+      }
       sendMessage(WM_SETICON, ICON_BIG, hIcon);
     }
+  }
+
+  final Map<String, int> _iconsCache = {};
+
+  int loadIconCached(String iconPath, int width, int height) {
+    var cacheKey = '$iconPath @> $width;$height';
+    return _iconsCache[cacheKey] ??= loadIcon(iconPath, width, height);
+  }
+
+  /// Loads an icon with dimensions [width] and [height] from [iconPath].
+  int loadIcon(String iconPath, int width, int height) {
+    var iconPathPtr = iconPath.toNativeUtf16();
+    var hIcon = LoadImage(
+        NULL, iconPathPtr, IMAGE_ICON, width, height, LR_LOADFROMFILE);
+    return hIcon;
   }
 
   /// Processes a [WM_COMMAND] message. Also calls [processCommand] for [children] [Window]s.

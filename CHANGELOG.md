@@ -1,3 +1,9 @@
+## 1.0.7
+
+- `Window`:
+  - Optimize `setIcon`.i
+  - Added `loadIcon` and `loadIconCached`.
+
 ## 1.0.6
 
 - Fix `RichEdit.defaultFont`.
