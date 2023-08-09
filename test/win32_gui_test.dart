@@ -85,8 +85,8 @@ void main() {
       print('-- Checking if Not minimized');
       expect(mainWindow.isMinimized, isFalse);
 
-      // sleep 2s to show restore:
-      await Future.delayed(Duration(seconds: 2));
+      // Process messages for 2s to show restore:
+      Window.runMessageLoopAsync(timeout: Duration(seconds: 2));
     }
 
     {
