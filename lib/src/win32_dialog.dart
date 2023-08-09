@@ -48,7 +48,11 @@ class Dialog<R> {
           final hdc = GetDC(hwnd);
           dialog.processCommand(hwnd, hdc, wParam, lParam);
           ReleaseDC(hwnd, hdc);
+
+          result = TRUE;
         }
+
+        result = FALSE;
         break;
       default:
         result = DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -231,13 +235,8 @@ class Dialog<R> {
     var idx = 0;
 
     idx += templatePtr.elementAt(idx).cast<DLGTEMPLATE>().setDialog(
-        style: WS_POPUP |
-            WS_BORDER |
-            WS_SYSMENU |
-            DS_MODALFRAME |
-            DS_SETFONT |
-            WS_CAPTION,
-        title: 'Sample dialog',
+        style: style,
+        title: title ?? '',
         cdit: items.length,
         x: x ?? CW_USEDEFAULT,
         y: y ?? CW_USEDEFAULT,
