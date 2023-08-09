@@ -68,7 +68,7 @@ void main() {
       expect(mainWindow.isMinimized, isTrue);
 
       // Process messages for 2s to show close:
-      Window.runMessageLoopAsync(timeout: Duration(seconds: 2));
+      await Window.runMessageLoopAsync(timeout: Duration(seconds: 2));
     }
 
     {
@@ -89,7 +89,7 @@ void main() {
       expect(mainWindow.isMinimized, isFalse);
 
       // Process messages for 2s to show restore:
-      Window.runMessageLoopAsync(timeout: Duration(seconds: 2));
+      await Window.runMessageLoopAsync(timeout: Duration(seconds: 2));
     }
 
     {
