@@ -12,7 +12,7 @@ class Button extends ChildWindow {
   );
 
   /// The command of this button when clicked.
-  final void Function(int lParam)? onCommand;
+  final void Function(int wParam, int lParam)? onCommand;
 
   Button(
       {super.id,
@@ -39,13 +39,14 @@ class Button extends ChildWindow {
   /// Calls [onCommand].
   /// See [Window.processCommand].
   @override
-  void processCommand(int hwnd, int hdc, int lParam) {
-    _log.info('[hwnd: $hwnd, hdc: $hdc] processCommand> lParam: $lParam');
+  void processCommand(int hwnd, int hdc, int wParam, int lParam) {
+    _log.info(
+        '[hwnd: $hwnd, hdc: $hdc] processCommand> wParam: $wParam, lParam: $lParam');
 
     final onCommand = this.onCommand;
 
     if (onCommand != null) {
-      onCommand(lParam);
+      onCommand(wParam, lParam);
     }
   }
 
