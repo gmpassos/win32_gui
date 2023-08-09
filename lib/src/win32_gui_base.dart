@@ -879,7 +879,6 @@ class Window {
   /// Shows this [Window].
   /// - Calls Win32 [ShowWindow] [SW_SHOWNORMAL].
   void show() {
-    ensureLoaded();
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
@@ -889,7 +888,6 @@ class Window {
   /// Minimizes this [Window].
   /// - Calls Win32 [ShowWindow] [SW_MINIMIZE].
   void minimize() {
-    ensureLoaded();
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_MINIMIZE);
@@ -898,7 +896,6 @@ class Window {
   /// Maximized this [Window].
   /// - Calls Win32 [ShowWindow] [SW_MAXIMIZE].
   void maximize() {
-    ensureLoaded();
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_MAXIMIZE);
@@ -908,7 +905,6 @@ class Window {
   /// Restores this [Window].
   /// - Calls Win32 [ShowWindow] [SW_RESTORE].
   void restore() {
-    ensureLoaded();
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_RESTORE);
@@ -924,7 +920,6 @@ class Window {
   bool get isMaximized => (getWindowLongPtr(GWL_STYLE) & WS_MAXIMIZE) != 0;
 
   int getWindowLongPtr(int nIndex) {
-    ensureLoaded();
     final hwnd = this.hwnd;
     return GetWindowLongPtr(hwnd, nIndex);
   }
@@ -935,7 +930,6 @@ class Window {
   /// - Returns `false` (minimize) if `processClose` returns `true` (confirm close).
   /// - Returns `null` (do nothing) if `processClose` returns `false` (abort close).
   bool? close() {
-    ensureLoaded();
     final hwnd = this.hwnd;
 
     var shouldClose = processClose();
@@ -957,7 +951,6 @@ class Window {
   /// Destroys this [Window].
   /// - Calls Win32 [DestroyWindow].
   void destroy() {
-    ensureLoaded();
     final hwnd = this.hwnd;
 
     DestroyWindow(hwnd);
@@ -967,6 +960,28 @@ class Window {
   /// - Calls Win32 [PostQuitMessage].
   static void quit([int exitCode = 0]) {
     PostQuitMessage(exitCode);
+  }
+
+  /// Shows a confirmation dialog.
+  /// - Calls Win32 [MessageBox].
+  bool showConfirmationDialog(String title, String text,
+      {int flags = MB_ICONQUESTION | MB_YESNO}) {
+    final hwnd = this.hwnd;
+
+    final titlePointer = title.toNativeUtf16();
+    final textPointer = text.toNativeUtf16();
+
+    final result = MessageBox(
+      hwnd,
+      textPointer,
+      titlePointer,
+      flags,
+    );
+
+    free(titlePointer);
+    free(textPointer);
+
+    return result == IDYES;
   }
 
   /// Paint operation: draws this [Window] background.
@@ -1033,9 +1048,10 @@ class Window {
   /// - The image should be a 24bit Bitmap.
   /// - See [loadImageCached] and [getBitmapDimension].
   int loadImage(String imgPath, {int imgWidth = 0, int imgHeight = 0}) {
-    final hBitmap = LoadImage(NULL, imgPath.toNativeUtf16(), IMAGE_BITMAP,
-        imgWidth, imgHeight, LR_LOADFROMFILE);
-
+    var imgPathPtr = imgPath.toNativeUtf16();
+    final hBitmap = LoadImage(
+        NULL, imgPathPtr, IMAGE_BITMAP, imgWidth, imgHeight, LR_LOADFROMFILE);
+    free(imgPathPtr);
     return hBitmap;
   }
 
@@ -1119,6 +1135,7 @@ class Window {
     var iconPathPtr = iconPath.toNativeUtf16();
     var hIcon = LoadImage(
         NULL, iconPathPtr, IMAGE_ICON, width, height, LR_LOADFROMFILE);
+    free(iconPathPtr);
     return hIcon;
   }
 

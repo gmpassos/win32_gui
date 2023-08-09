@@ -2,6 +2,9 @@
 
 - Improve `README.md` usage code.
 - `win32_gui_example.dart`: improve comments.
+- `Window`:
+  - Added `showConfirmationDialog`.
+  - Free some pointers.
 
 ## 1.0.9
 
