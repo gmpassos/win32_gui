@@ -13,6 +13,13 @@ final _logDialog = logging.Logger('Win32:Dialog');
 
 /// A Win32 Dialog.
 class Dialog<R> extends WindowBase<Dialog> {
+  /// Defines the colors for `WM_CTLCOLORDLG` message.
+  /// Alias to [WindowClass.dialogColors].
+  static WindowClassColors? get dialogColors => WindowClass.dialogColors;
+
+  static set dialogColors(WindowClassColors? colors) =>
+      WindowClass.dialogColors = colors;
+
   /// The default [Dialog] [DlgProc] implementation.
   static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
     var result = 0;
@@ -91,6 +98,11 @@ class Dialog<R> extends WindowBase<Dialog> {
         {
           dialog = getDialogWithHWnd(hwnd);
           dialog?.notifyDestroyed();
+        }
+
+      case WM_CTLCOLORDLG:
+        {
+          result = dialogColors?.createSolidBrush(wParam) ?? 0;
         }
 
       default:

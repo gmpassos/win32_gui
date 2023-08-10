@@ -2,6 +2,7 @@
 
 - `WindowClassColors`:
   - Added `dialogColors`
+- `Dialog`: Added alis `dialogColors` to `WindowClassColors.dialogColors`.
 
 ## 1.1.0
 

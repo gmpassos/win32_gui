@@ -30,6 +30,23 @@ class WindowClassColors {
 
   WindowClassColors({this.textColor, this.bgColor});
 
+  /// Creates a solid brush from this [WindowClassColors].
+  /// - Calls Win32 [CreateSolidBrush]
+  int createSolidBrush(int hdc) {
+    var textColor = this.textColor;
+    if (textColor != null) {
+      SetTextColor(hdc, textColor);
+    }
+
+    var bgColor = this.bgColor;
+    if (bgColor != null) {
+      SetBkMode(hdc, OPAQUE);
+      SetBkColor(hdc, bgColor);
+    }
+
+    return CreateSolidBrush(bgColor ?? textColor ?? RGB(255, 255, 255));
+  }
+
   @override
   String toString() {
     return 'WindowClassColors{textColor: $textColor, bgColor: $bgColor}';
@@ -214,27 +231,27 @@ class WindowClass {
         }
       case WM_CTLCOLORSTATIC:
         {
-          result = _setColors(wParam, staticColors);
+          result = staticColors?.createSolidBrush(wParam) ?? 0;
         }
       case WM_CTLCOLORBTN:
         {
-          result = _setColors(wParam, buttonColors);
+          result = buttonColors?.createSolidBrush(wParam) ?? 0;
         }
       case WM_CTLCOLORLISTBOX:
         {
-          result = _setColors(wParam, listBoxColors);
+          result = listBoxColors?.createSolidBrush(wParam) ?? 0;
         }
       case WM_CTLCOLOREDIT:
         {
-          result = _setColors(wParam, editColors);
+          result = editColors?.createSolidBrush(wParam) ?? 0;
         }
       case WM_CTLCOLORSCROLLBAR:
         {
-          result = _setColors(wParam, scrollBarColors);
+          result = scrollBarColors?.createSolidBrush(wParam) ?? 0;
         }
       case WM_CTLCOLORDLG:
         {
-          result = _setColors(wParam, dialogColors);
+          result = dialogColors?.createSolidBrush(wParam) ?? 0;
         }
 
       case WM_CLOSE:
@@ -341,25 +358,6 @@ class WindowClass {
     }
 
     return null;
-  }
-
-  static int _setColors(int hdc, WindowClassColors? colors) {
-    if (colors == null) {
-      return 0;
-    }
-
-    var textColor = colors.textColor;
-    if (textColor != null) {
-      SetTextColor(hdc, textColor);
-    }
-
-    var bgColor = colors.bgColor;
-    if (bgColor != null) {
-      SetBkMode(hdc, OPAQUE);
-      SetBkColor(hdc, bgColor);
-    }
-
-    return CreateSolidBrush(bgColor ?? textColor ?? RGB(255, 255, 255));
   }
 
   static final Set<Window> _allWindows = {};
