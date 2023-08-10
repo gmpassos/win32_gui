@@ -13,6 +13,7 @@ final _logDialog = logging.Logger('Win32:Dialog');
 
 /// A Win32 Dialog.
 class Dialog<R> extends WindowBase<Dialog> {
+  /// The default [Dialog] [DlgProc] implementation.
   static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
     var result = 0;
 
@@ -114,10 +115,13 @@ class Dialog<R> extends WindowBase<Dialog> {
 
   static final Set<Dialog> _dialogs = {};
 
+  /// List of active dialogs.
   static Set<Dialog> get dialogs => UnmodifiableSetView(_dialogs);
 
+  /// Register a [Dialog] (called the constructor).
   static bool registerDialog(Dialog dialog) => _dialogs.add(dialog);
 
+  /// Unregister a [Dialog] (called by [doDestroy]).
   static bool unregisterDialog(Dialog dialog) => _dialogs.remove(dialog);
 
   /// Returns a [Dialog] with [hwnd].
@@ -161,6 +165,7 @@ class Dialog<R> extends WindowBase<Dialog> {
     return null;
   }
 
+  /// The [Dialog] style.
   int style;
 
   /// The [Dialog] title.
@@ -221,8 +226,10 @@ class Dialog<R> extends WindowBase<Dialog> {
 
   Timer? _timeoutTimer;
 
+  /// The [timeout] timer (if running).
   Timer? get timeoutTimer => _timeoutTimer;
 
+  /// Setup [timeoutTimer].
   void setupTimeout() {
     final timeout = this.timeout;
     if (timeout == null) return;
@@ -444,6 +451,7 @@ class Dialog<R> extends WindowBase<Dialog> {
     return false;
   }
 
+  /// Finishes this dialog setting its [result].
   void finish([R? result]) {
     this.result = result;
     assert(isResultSet);
@@ -508,6 +516,46 @@ class DialogItem {
     this.text = '',
     this.creationDataBytes = const [],
   });
+
+  /// A button item.
+  factory DialogItem.button(
+          {int style = WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+          required int x,
+          required int y,
+          required int width,
+          required int height,
+          required int id,
+          required String text}) =>
+      DialogItem(
+        style: style,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        id: id,
+        text: text,
+      );
+
+  /// A text item.
+  factory DialogItem.text(
+          {int style = WS_CHILD | WS_VISIBLE,
+          String windowClass = 'static',
+          required int x,
+          required int y,
+          required int width,
+          required int height,
+          required int id,
+          required String text}) =>
+      DialogItem(
+        style: style,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        id: id,
+        windowClass: windowClass,
+        text: text,
+      );
 
   @override
   bool operator ==(Object other) =>

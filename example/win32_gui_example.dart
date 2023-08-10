@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:win32_gui/src/win32_dialog.dart';
 import 'package:win32_gui/win32_gui.dart';
 import 'package:win32_gui/win32_gui_logging.dart';
 
@@ -255,18 +254,15 @@ class DialogConfirmExit extends Dialog<int> {
             height: 56,
             timeout: Duration(seconds: 10),
             items: [
-              DialogItem(
-                style: WS_CHILD | WS_VISIBLE,
+              DialogItem.text(
                 x: 10,
                 y: 10,
                 width: 100,
                 height: 32,
                 id: 0,
-                windowClass: 'static',
                 text: 'Yes or No? (timeout: 10s)',
               ),
-              DialogItem(
-                style: WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+              DialogItem.button(
                 x: 4,
                 y: 30,
                 width: 50,
@@ -274,13 +270,12 @@ class DialogConfirmExit extends Dialog<int> {
                 id: 1,
                 text: 'Yes',
               ),
-              DialogItem(
-                style: WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+              DialogItem.button(
                 x: 4 + 50 + 4,
                 y: 30,
                 width: 50,
                 height: 22,
-                id: -1,
+                id: 2,
                 text: 'No',
               ),
             ]);

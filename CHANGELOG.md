@@ -1,3 +1,8 @@
+## 1.0.11
+
+- export 'src/win32_dialog.dart';
+- Added `DialogItem.button` and `DialogItem.text`.
+
 ## 1.0.10
 
 - Improve `README.md` usage code.

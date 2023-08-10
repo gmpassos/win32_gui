@@ -577,10 +577,15 @@ abstract class WindowBase<W extends WindowBase<W>> {
     this.height,
   });
 
+  /// The `create` ID.
+  ///
+  /// Used to identify this class instance while
+  /// responding to a [WM_CREATE] or [WM_INITDIALOG] message.
   int get createId;
 
   Future<void>? _loadCall;
 
+  /// Ensures that [load] was called.
   Future<void> ensureLoaded() => _loadCall ??= _callLoad();
 
   Future<void> _callLoad() async {
