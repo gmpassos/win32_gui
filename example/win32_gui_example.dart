@@ -123,14 +123,14 @@ class MainWindow extends Window {
     dialogConfirmExit.onTimeout.listen((event) {
       showMessage(
         'Dialog Timeout',
-        'Dialog Timeout> result: ${dialogConfirmExit.result} ; timeout: ${dialogConfirmExit.timeout?.inMilliseconds} ms',
+        'Dialog Timeout> result: ${dialogConfirmExit.result} ; timeout: ${dialogConfirmExit.timeout?.inSeconds} s',
       );
     });
 
     dialogConfirmExit.onDestroyed.listen((_) {
       showMessage(
         'Dialog Result',
-        'Dialog Closed> result: ${dialogConfirmExit.result} ; timeout: ${dialogConfirmExit.timeout?.inMilliseconds} ms',
+        'Dialog Closed> result: ${dialogConfirmExit.result}',
       );
     });
 
