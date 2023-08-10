@@ -850,10 +850,19 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   /// Destroys this [Window].
   /// - Calls Win32 [DestroyWindow].
-  void destroy() {
+  bool destroy() {
     final hwnd = this.hwnd;
 
-    DestroyWindow(hwnd);
+    var r = DestroyWindow(hwnd);
+    if (r == 0) {
+      final errorCode = GetLastError();
+      _logWindow.warning(
+          "Error closing `Window`> errorCode: $errorCode > $hwnd -> $this");
+
+      return false;
+    }
+
+    return true;
   }
 
   /// Shows a message dialog.

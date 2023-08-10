@@ -309,9 +309,7 @@ class Dialog<R> extends WindowBase<Dialog> {
     final timeout = this.timeout;
     if (timeout == null) return;
 
-    _timeoutTimer = Timer(timeout, () {
-      _notifyTimeout();
-    });
+    _timeoutTimer = Timer(timeout, _notifyTimeout);
   }
 
   bool _timeoutTriggered = false;

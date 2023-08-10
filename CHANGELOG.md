@@ -1,3 +1,8 @@
+## 1.1.2
+
+- `WindowBase`:
+  - `destroy`: returns `bool` and warns failed calls.
+
 ## 1.1.1
 
 - `WindowClassColors`:
