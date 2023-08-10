@@ -516,6 +516,7 @@ class WindowMessageLoop {
   }
 
   /// Consumes the message queue.
+  /// - Returns the amount of processed messages.
   /// - Calls Win32 [PeekMessage] (removing from que queue).
   /// - Stops after consume reaches [maxMessages] or when the queue is empty.
   static int consumeQueue({int maxMessages = 3}) {
