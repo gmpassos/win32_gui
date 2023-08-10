@@ -117,27 +117,27 @@ class MainWindow extends Window {
   void _onButtonOK(int w, int l) async {
     print('** Button OK Click!');
 
-    var dialogConfirmExit = DialogExample(parent: this);
+    var dialog = DialogExample(parent: this);
 
-    dialogConfirmExit.onTimeout.listen((event) {
+    dialog.onTimeout.listen((event) {
       showMessage(
         'Dialog Timeout',
-        'Dialog Timeout> result: ${dialogConfirmExit.result} ; timeout: ${dialogConfirmExit.timeout?.inSeconds} s',
+        'Dialog Timeout> result: ${dialog.result} ; timeout: ${dialog.timeout?.inSeconds} s',
       );
     });
 
-    dialogConfirmExit.onDestroyed.listen((_) {
-      if (!dialogConfirmExit.timeoutTriggered) {
+    dialog.onDestroyed.listen((_) {
+      if (!dialog.timeoutTriggered) {
         showMessage(
           'Dialog Result',
-          'Dialog Closed> result: ${dialogConfirmExit.result}',
+          'Dialog Closed> result: ${dialog.result}',
         );
       }
     });
 
-    dialogConfirmExit.create();
+    dialog.create();
 
-    var result = await dialogConfirmExit.waitAndGetResult();
+    var result = await dialog.waitAndGetResult();
 
     print('** DialogConfirmExit result: $result');
   }
