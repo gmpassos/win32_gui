@@ -13,7 +13,36 @@ final _logDialog = logging.Logger('Win32:Dialog');
 
 /// A Win32 Dialog.
 class Dialog<R> extends WindowBase<Dialog> {
-  /// Defines the colors for `WM_CTLCOLORDLG` message.
+  /// Alias to [WindowClass.staticColors].
+  static WindowClassColors? get staticColors => WindowClass.staticColors;
+
+  static set staticColors(WindowClassColors? colors) =>
+      WindowClass.staticColors = colors;
+
+  /// Alias to [WindowClass.buttonColors].
+  static WindowClassColors? get buttonColors => WindowClass.buttonColors;
+
+  static set buttonColors(WindowClassColors? colors) =>
+      WindowClass.buttonColors = colors;
+
+  /// Alias to [WindowClass.listBoxColors].
+  static WindowClassColors? get listBoxColors => WindowClass.listBoxColors;
+
+  static set listBoxColors(WindowClassColors? colors) =>
+      WindowClass.listBoxColors = colors;
+
+  /// Alias to [WindowClass.editColors].
+  static WindowClassColors? get editColors => WindowClass.editColors;
+
+  static set editColors(WindowClassColors? colors) =>
+      WindowClass.editColors = colors;
+
+  /// Alias to [WindowClass.scrollBarColors].
+  static WindowClassColors? get scrollBarColors => WindowClass.scrollBarColors;
+
+  static set scrollBarColors(WindowClassColors? colors) =>
+      WindowClass.scrollBarColors = colors;
+
   /// Alias to [WindowClass.dialogColors].
   static WindowClassColors? get dialogColors => WindowClass.dialogColors;
 
@@ -106,6 +135,26 @@ class Dialog<R> extends WindowBase<Dialog> {
           dialog?.notifyDestroyed();
         }
 
+      case WM_CTLCOLORSTATIC:
+        {
+          result = staticColors?.createSolidBrush(wParam) ?? 0;
+        }
+      case WM_CTLCOLORBTN:
+        {
+          result = buttonColors?.createSolidBrush(wParam) ?? 0;
+        }
+      case WM_CTLCOLORLISTBOX:
+        {
+          result = listBoxColors?.createSolidBrush(wParam) ?? 0;
+        }
+      case WM_CTLCOLOREDIT:
+        {
+          result = editColors?.createSolidBrush(wParam) ?? 0;
+        }
+      case WM_CTLCOLORSCROLLBAR:
+        {
+          result = scrollBarColors?.createSolidBrush(wParam) ?? 0;
+        }
       case WM_CTLCOLORDLG:
         {
           result = dialogColors?.createSolidBrush(wParam) ?? 0;
