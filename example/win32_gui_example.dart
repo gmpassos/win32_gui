@@ -128,10 +128,12 @@ class MainWindow extends Window {
     });
 
     dialogConfirmExit.onDestroyed.listen((_) {
-      showMessage(
-        'Dialog Result',
-        'Dialog Closed> result: ${dialogConfirmExit.result}',
-      );
+      if (!dialogConfirmExit.timeoutTriggered) {
+        showMessage(
+          'Dialog Result',
+          'Dialog Closed> result: ${dialogConfirmExit.result}',
+        );
+      }
     });
 
     dialogConfirmExit.create();
