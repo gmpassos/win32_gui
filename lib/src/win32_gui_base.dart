@@ -722,6 +722,47 @@ abstract class WindowBase<W extends WindowBase<W>> {
     }
   }
 
+  int? _iconSmall;
+  int? _iconBig;
+
+  /// Sets this [Window] icon from [iconPath].
+  ///
+  /// - If [small] is true, sets a 16x16 icon.
+  /// - If [big] is true, sets a 48x48 or 32x32 icon.
+  /// - If [cached] is true will load the icons using [loadIconCached], otherwise will call [loadIcon].
+  /// - If [force] is true will always call [sendMessage], even if the icon was already set to the same icon handler.
+  void setIcon(String iconPath,
+      {bool small = true,
+      bool big = true,
+      bool cached = true,
+      bool force = false}) {
+    var loader = cached ? Window.loadIconCached : Window.loadIcon;
+
+    if (small) {
+      var hIcon = loader(iconPath, 16, 16);
+      if (hIcon == 0) {
+        hIcon = loader(iconPath, 32, 32);
+      }
+
+      if (force || _iconSmall != hIcon) {
+        sendMessage(WM_SETICON, ICON_SMALL2, hIcon);
+        _iconSmall = hIcon;
+      }
+    }
+
+    if (big) {
+      var hIcon = loader(iconPath, 48, 48);
+      if (hIcon == 0) {
+        hIcon = loader(iconPath, 32, 32);
+      }
+
+      if (force || _iconBig != hIcon) {
+        sendMessage(WM_SETICON, ICON_BIG, hIcon);
+        _iconBig = hIcon;
+      }
+    }
+  }
+
   /// Shows this [Window].
   /// - Calls Win32 [ShowWindow] [SW_SHOWNORMAL].
   void show() {
@@ -1272,47 +1313,6 @@ class Window extends WindowBase<Window> {
     free(bm);
 
     return dimension;
-  }
-
-  int? _iconSmall;
-  int? _iconBig;
-
-  /// Sets this [Window] icon from [iconPath].
-  ///
-  /// - If [small] is true, sets a 16x16 icon.
-  /// - If [big] is true, sets a 48x48 or 32x32 icon.
-  /// - If [cached] is true will load the icons using [loadIconCached], otherwise will call [loadIcon].
-  /// - If [force] is true will always call [sendMessage], even if the icon was already set to the same icon handler.
-  void setIcon(String iconPath,
-      {bool small = true,
-      bool big = true,
-      bool cached = true,
-      bool force = false}) {
-    var loader = cached ? loadIconCached : loadIcon;
-
-    if (small) {
-      var hIcon = loader(iconPath, 16, 16);
-      if (hIcon == 0) {
-        hIcon = loader(iconPath, 32, 32);
-      }
-
-      if (force || _iconSmall != hIcon) {
-        sendMessage(WM_SETICON, ICON_SMALL2, hIcon);
-        _iconSmall = hIcon;
-      }
-    }
-
-    if (big) {
-      var hIcon = loader(iconPath, 48, 48);
-      if (hIcon == 0) {
-        hIcon = loader(iconPath, 32, 32);
-      }
-
-      if (force || _iconBig != hIcon) {
-        sendMessage(WM_SETICON, ICON_BIG, hIcon);
-        _iconBig = hIcon;
-      }
-    }
   }
 
   static final Map<String, int> _iconsCache = {};

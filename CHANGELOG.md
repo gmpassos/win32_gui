@@ -2,6 +2,8 @@
 
 - `WindowBase`:
   - Generalize `create`.
+- `Window`:
+  - Move `setIcon` to `WindowBase`.
 - `Dialog.create`: call `ensureLoaded`.
 
 ## 1.0.12
