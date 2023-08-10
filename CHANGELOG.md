@@ -1,3 +1,9 @@
+## 1.1.0
+
+- `WindowBase`:
+  - Generalize `create`.
+- `Dialog.create`: call `ensureLoaded`.
+
 ## 1.0.12
 
 - `WindowBase`:

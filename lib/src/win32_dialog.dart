@@ -273,7 +273,10 @@ class Dialog<R> extends WindowBase<Dialog> {
   int? get hwndIfCreated => _hwnd;
 
   /// Creates the [Dialog].
-  int create() {
+  @override
+  Future<int> create() async {
+    await ensureLoaded();
+
     final createIdPtr = calloc<Uint32>();
     createIdPtr.value = createId;
 
@@ -483,7 +486,7 @@ class Dialog<R> extends WindowBase<Dialog> {
 
   @override
   String toString() {
-    return 'Dialog{style: $style, title: $title, x: $x, y: $y, width: $width, height: $height, fontName: $fontName, fontSize: $fontSize, items: $items, dialogFunction: $dialogFunction, result: $result, parent: $parent}';
+    return 'Dialog{style: $style, title: $title, x: $x, y: $y, width: $width, height: $height, fontName: $fontName, fontSize: $fontSize, items: ${items.length}, dialogFunction: $dialogFunction, result: $result, parent: $parent}';
   }
 }
 

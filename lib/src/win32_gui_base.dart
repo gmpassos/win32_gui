@@ -583,6 +583,10 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// responding to a [WM_CREATE] or [WM_INITDIALOG] message.
   int get createId;
 
+  /// Creates the [Window] or [Dialog].
+  /// - Should call: `await` [ensureLoaded].
+  Future<int> create();
+
   Future<void>? _loadCall;
 
   /// Ensures that [load] was called.
@@ -1098,6 +1102,7 @@ class Window extends WindowBase<Window> {
   int? get hwndIfCreated => _hwnd;
 
   /// Creates this [Window].
+  @override
   Future<int> create({bool createChildren = true}) async {
     await ensureLoaded();
 
