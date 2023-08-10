@@ -261,7 +261,7 @@ class WindowClass {
       case WM_NCDESTROY:
         {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
-          window?._notifyDestroyed();
+          window?.notifyDestroyed();
         }
 
       default:
@@ -540,69 +540,8 @@ extension _DateTimeExtension on DateTime {
   bool timeOut(Duration? timeout) => !hasRemainingTime(timeout);
 }
 
-/// A Win32 Window.
-/// - See [ChildWindow].
-class Window {
-  /// Alias to [WindowMessageLoop.runLoop].
-  static void runMessageLoop({bool Function()? condition}) =>
-      WindowMessageLoop.runLoop(condition: condition);
-
-  /// Alias to [WindowMessageLoop.runLoopAsync].
-  static Future<int> runMessageLoopAsync(
-          {Duration? timeout,
-          int maxConsecutiveDispatches = 100,
-          bool Function()? condition}) =>
-      WindowMessageLoop.runLoopAsync(
-          timeout: timeout,
-          maxConsecutiveDispatches: maxConsecutiveDispatches,
-          condition: condition);
-
-  /// Resolves [path] to [Uri].
-  /// - See [Resource].
-  static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
-
-  /// Resolves [path] to a local file path.
-  /// - See [Resource].
-  static Future<String> resolveFilePath(String path) =>
-      resolveFileUri(path).then((uri) => uri.toFilePath());
-
-  /// Returns the system fonts.
-  /// - Calls [SystemParametersInfo] [SPI_GETNONCLIENTMETRICS].
-  static Map<String, String> getSystemDefaultFonts() {
-    var ncm = calloc<NONCLIENTMETRICS>();
-    var ncmRef = ncm.ref;
-
-    final ncmSz = sizeOf<NONCLIENTMETRICS>();
-    ncmRef.cbSize = ncmSz;
-
-    var ok = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmSz, ncm, 0) != 0;
-
-    if (!ok) {
-      var errorCode = GetLastError();
-      throw StateError(
-          "Can't call `SystemParametersInfo(SPI_GETNONCLIENTMETRICS...)`. Error: $errorCode");
-    }
-
-    var info = <String, String>{
-      'caption': ncmRef.lfCaptionFont.lfFaceName,
-      'menu': ncmRef.lfMenuFont.lfFaceName,
-      'message': ncmRef.lfMessageFont.lfFaceName,
-      'status': ncmRef.lfStatusFont.lfFaceName,
-    };
-
-    free(ncm);
-    return info;
-  }
-
-  /// The [WindowClass] of this [Window].
-  final WindowClass windowClass;
-
-  /// The name of this [Window]. If it's a frame this is the [Window] title.
-  final String? windowName;
-
-  /// The style flags of this [Window] to pass to [CreateWindowEx].
-  final int windowStyles;
-
+/// A base class for [Window] or [Dialog].
+abstract class WindowBase<W extends WindowBase<W>> {
   /// The [x] coordinate of this [Window] when created.
   int? x;
 
@@ -615,17 +554,12 @@ class Window {
   /// The [height] of this [Window] when created.
   int? height;
 
-  /// The background color of this [Window] (if applicable).
-  int? bgColor;
-
   /// Returns `true` if this [Window] was created.
-  bool get created => _hwnd != null;
-
-  int? _hwnd;
+  bool get created => hwndIfCreated != null;
 
   /// The window handler ID (if [created]).
   int get hwnd {
-    final hwnd = _hwnd;
+    final hwnd = hwndIfCreated;
     if (hwnd == null) {
       throw StateError(
           "Window not created! `hwnd` not defined! Method `create()` should be called before use of `hwnd`.");
@@ -634,126 +568,16 @@ class Window {
   }
 
   /// Returns the window handler ID if [created] or `null`.
-  int? get hwndIfCreated => _hwnd;
+  int? get hwndIfCreated;
 
-  /// The [hMenu] parameter passed to [CreateWindowEx].
-  /// - If this is a [ChildWindow] this is the child element ID ([ChildWindow.id]).
-  final int? hMenu;
+  WindowBase({
+    this.x,
+    this.y,
+    this.width,
+    this.height,
+  });
 
-  /// The parent [Window] of this instance.
-  /// - See [ChildWindow].
-  final Window? parent;
-
-  /// If `true` will perform a default repaint and
-  /// will NOT call the custom [repaint] method.
-  bool defaultRepaint;
-
-  Window(
-      {required this.windowClass,
-      this.windowName,
-      this.windowStyles = 0,
-      this.x,
-      this.y,
-      this.width,
-      this.height,
-      this.bgColor,
-      this.hMenu,
-      required this.defaultRepaint,
-      this.parent}) {
-    windowClass.register();
-    windowClass.registerWindow(this);
-
-    parent?._addChild(this);
-  }
-
-  Pointer<Utf16>? _windowNameNative;
-
-  Pointer<Utf16> get windowNameNative =>
-      _windowNameNative ??= windowName?.toNativeUtf16() ?? nullptr;
-
-  static int _createIdCount = 0;
-
-  final int _createId = ++_createIdCount;
-
-  /// Creates this [Window].
-  Future<int> create({bool createChildren = true}) async {
-    await ensureLoaded();
-
-    final createIdPtr = calloc<Uint32>();
-    createIdPtr.value = _createId;
-
-    final hwnd = createWindowImpl(createIdPtr);
-
-    if (hwnd == 0) {
-      var errorCode = GetLastError();
-      throw StateError("Can't create window> errorCode: $errorCode -> $this");
-    }
-
-    if (_hwnd != null && _hwnd != hwnd) {
-      throw StateError(
-          "`WM_CREATE` `Window` lookup error: _hwnd:$_hwnd != hwnd:$hwnd");
-    }
-
-    _hwnd = hwnd;
-
-    _logWindow.info("Created Window #$hwnd: $this");
-
-    if (createChildren) {
-      for (var c in _children) {
-        await c.create();
-      }
-    }
-
-    updateWindow();
-
-    return hwnd;
-  }
-
-  /// Window creation implementation.
-  /// - Calls Win32 [CreateWindowEx] by default.
-  /// - Allows @[override].
-  int createWindowImpl(Pointer<Uint32> createIdPtr) => CreateWindowEx(
-      // Optional window styles:
-      0,
-
-      // Window class:
-      windowClass.classNameNative,
-
-      // Window text:
-      windowNameNative,
-
-      // Window style:
-      windowStyles,
-
-      // Size and position:
-      x ?? CW_USEDEFAULT,
-      y ?? CW_USEDEFAULT,
-      width ?? CW_USEDEFAULT,
-      height ?? CW_USEDEFAULT,
-
-      // Parent window:
-      parent?._hwnd ?? NULL,
-      // Menu:
-      hMenu ?? NULL,
-      // Instance handle:
-      hInstance,
-      // Pass the `_createId`
-      createIdPtr);
-
-  final List<Window> _children = [];
-
-  List<Window> get children => UnmodifiableListView(_children);
-
-  void _addChild(Window child) {
-    if (_children.contains(child)) {
-      throw StateError("Child already added: $child");
-    }
-
-    _logWindow.info(
-        'Add child> #$hwndIfCreated<${windowClass.className}>[${windowName ?? ''}] -> ${child.hwndIfCreated}<${child.windowClass.className}>[${child.windowName ?? ''}]');
-
-    _children.add(child);
-  }
+  int get createId;
 
   Future<void>? _loadCall;
 
@@ -761,10 +585,6 @@ class Window {
 
   Future<void> _callLoad() async {
     await load();
-
-    for (var child in _children) {
-      await child.ensureLoaded();
-    }
   }
 
   /// Loads asynchronous resources.
@@ -773,12 +593,12 @@ class Window {
   Future<void> load() async {}
 
   /// Calls [build] resolving necessary parameters.
-  /// - Used by [WindowClass.windowProcDefault].
+  /// - Used by [WindowClass.windowProcDefault] or [Dialog.dialogProcDefault].
   bool callBuild({int? hdc}) {
     ensureLoaded();
     final hwnd = this.hwnd;
 
-    _logWindow.info("Building Window> $this");
+    _logWindow.info("Building> $this");
 
     if (hdc == null) {
       final hdc = GetDC(hwnd);
@@ -802,39 +622,6 @@ class Window {
     SetViewportExtEx(hdc, 1, 1, nullptr);
     SetWindowExtEx(hdc, 1, 1, nullptr);
   }
-
-  /// Calls [repaint] resolving necessary parameters.
-  /// - Used by [WindowClass.windowProcDefault].
-  bool callRepaint({int? hdc}) {
-    ensureLoaded();
-
-    final hwnd = this.hwnd;
-
-    if (defaultRepaint) {
-      return false;
-    }
-
-    if (hdc == null) {
-      final ps = calloc<PAINTSTRUCT>();
-      final hdc = BeginPaint(hwnd, ps);
-
-      _callRepaintImpl(hwnd, hdc);
-      EndPaint(hwnd, ps);
-    } else {
-      _callRepaintImpl(hwnd, hdc);
-    }
-
-    return true;
-  }
-
-  void _callRepaintImpl(int hwnd, int hdc) {
-    fetchDimension();
-    repaint(hwnd, hdc);
-  }
-
-  /// [Window] custom repaint procedure.
-  /// - [defaultRepaint] should be `false` to call a custom [repaint].
-  void repaint(int hwnd, int hdc) {}
 
   /// Sends a [message] to this [Window].
   int sendMessage(int message, int wParam, int lParam) {
@@ -861,6 +648,8 @@ class Window {
   /// Updates this [Window].
   /// - Calls Win32 [UpdateWindow].
   bool updateWindow() => UpdateWindow(hwnd) == 1;
+
+  final _rect = calloc<RECT>();
 
   Pointer<RECT>? _resolveRect(math.Rectangle<num>? rect, Pointer<RECT>? pRect) {
     if (rect != null) {
@@ -1000,12 +789,6 @@ class Window {
     DestroyWindow(hwnd);
   }
 
-  /// Sends quit message with [exitCode].
-  /// - Calls Win32 [PostQuitMessage].
-  static void quit([int exitCode = 0]) {
-    PostQuitMessage(exitCode);
-  }
-
   /// Shows a message dialog.
   /// - Calls Win32 [MessageBox].
   /// - See [showDialog].
@@ -1067,17 +850,6 @@ class Window {
     return result;
   }
 
-  /// Paint operation: draws this [Window] background.
-  void drawBG(int hdc, {int? bgColor}) {
-    bgColor ??= this.bgColor;
-
-    if (bgColor != null) {
-      fillRect(hdc, bgColor, pRect: dimension);
-    }
-  }
-
-  final _rect = calloc<RECT>();
-
   /// Paint operation: fills a rectangle with [color].
   void fillRect(int hdc, int color,
       {math.Rectangle? rect, Pointer<RECT>? pRect}) {
@@ -1119,18 +891,355 @@ class Window {
     free(s);
   }
 
-  final Map<String, int> _imagesCached = {};
+  /// Paint operation: draws [hBitmap] at coordinates [x], [y].
+  /// - Calls Win32 [BitBlt] to copy the Bitmap bytes to this [Window].
+  void drawImage(int hdc, int hBitmap, int x, int y, int width, int height) {
+    final hMemDC = CreateCompatibleDC(hdc);
+
+    SelectObject(hMemDC, hBitmap);
+    BitBlt(hdc, x, y, width, height, hMemDC, 0, 0, SRCCOPY);
+    DeleteObject(hMemDC);
+  }
+
+  /// Processes a [WM_COMMAND] message.
+  void processCommand(int hwnd, int hdc, int wParam, int lParam) {}
+
+  /// Processes a [WM_CLOSE] message or a [close] call.
+  /// - If returns `null` (not processed), will delegate to the default behavior of [DefWindowProc] (call [DestroyWindow]).
+  /// - If returns `true` tells to close the window (minimize).
+  /// - If returns `false` tells to abort the window closing (do nothing).
+  bool? processClose();
+
+  /// Processes a [WM_DESTROY] message.
+  void processDestroy() {}
+
+  /// Processes a message.
+  /// - Called by [WindowClass.windowProcDefault] when the messages doesn't have a default processor.
+  /// - Should return a value if this messages was processed, or `null` to send to [DefWindowProc].
+  int? processMessage(int hwnd, int uMsg, int wParam, int lParam) => null;
+
+  final StreamController<W> _onClose = StreamController();
+
+  /// On close event (after [WM_CLOSE] message).
+  /// - Called by [WindowClass.windowProcDefault].
+  Stream<W> get onClose => _onClose.stream;
+
+  void _notifyClose() {
+    _onClose.add(this as W);
+  }
+
+  final StreamController<W> _onDestroyed = StreamController();
+
+  /// On destroy event (after [WM_DESTROY] -> [WM_NCDESTROY] messages).
+  /// - Called by [WindowClass.windowProcDefault].
+  Stream<W> get onDestroyed => _onDestroyed.stream;
+
+  bool _destroyed = false;
+
+  /// Returns `true` if the window was [destroy]ed and the `WM_NCDESTROY` was processed.
+  /// - See [onDestroyed].
+  bool get isDestroyed => _destroyed;
+
+  /// Should be called while processing a [WM_NCDESTROY] message.
+  void notifyDestroyed() {
+    _destroyed = true;
+
+    _onDestroyed.add(this as W);
+
+    var waitingDestroyed = _waitingDestroyed;
+    if (waitingDestroyed != null && !waitingDestroyed.isCompleted) {
+      waitingDestroyed.complete(true);
+      _waitingDestroyed = null;
+    }
+
+    doDestroy();
+  }
+
+  /// Perform final destroy operations for this instance.
+  void doDestroy();
+
+  Completer<bool>? _waitingDestroyed;
+
+  /// Waits for this window to be destroyed.
+  /// - If [timeout] is defined it will return `false` on timeout.
+  Future<bool> waitDestroyed({Duration? timeout}) {
+    if (_destroyed) return Future.value(true);
+
+    var waitingDestroyed = _waitingDestroyed ??= Completer();
+
+    var future = waitingDestroyed.future;
+
+    if (timeout != null) {
+      future = future.timeout(timeout, onTimeout: () => false);
+    }
+
+    return future;
+  }
+}
+
+/// A Win32 Window.
+/// - See [ChildWindow].
+class Window extends WindowBase<Window> {
+  /// Alias to [WindowMessageLoop.runLoop].
+  static void runMessageLoop({bool Function()? condition}) =>
+      WindowMessageLoop.runLoop(condition: condition);
+
+  /// Alias to [WindowMessageLoop.runLoopAsync].
+  static Future<int> runMessageLoopAsync(
+          {Duration? timeout,
+          int maxConsecutiveDispatches = 100,
+          bool Function()? condition}) =>
+      WindowMessageLoop.runLoopAsync(
+          timeout: timeout,
+          maxConsecutiveDispatches: maxConsecutiveDispatches,
+          condition: condition);
+
+  /// Resolves [path] to [Uri].
+  /// - See [Resource].
+  static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
+
+  /// Resolves [path] to a local file path.
+  /// - See [Resource].
+  static Future<String> resolveFilePath(String path) =>
+      resolveFileUri(path).then((uri) => uri.toFilePath());
+
+  /// Returns the system fonts.
+  /// - Calls [SystemParametersInfo] [SPI_GETNONCLIENTMETRICS].
+  static Map<String, String> getSystemDefaultFonts() {
+    var ncm = calloc<NONCLIENTMETRICS>();
+    var ncmRef = ncm.ref;
+
+    final ncmSz = sizeOf<NONCLIENTMETRICS>();
+    ncmRef.cbSize = ncmSz;
+
+    var ok = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmSz, ncm, 0) != 0;
+
+    if (!ok) {
+      var errorCode = GetLastError();
+      throw StateError(
+          "Can't call `SystemParametersInfo(SPI_GETNONCLIENTMETRICS...)`. Error: $errorCode");
+    }
+
+    var info = <String, String>{
+      'caption': ncmRef.lfCaptionFont.lfFaceName,
+      'menu': ncmRef.lfMenuFont.lfFaceName,
+      'message': ncmRef.lfMessageFont.lfFaceName,
+      'status': ncmRef.lfStatusFont.lfFaceName,
+    };
+
+    free(ncm);
+    return info;
+  }
+
+  /// The [WindowClass] of this [Window].
+  final WindowClass windowClass;
+
+  /// The name of this [Window]. If it's a frame this is the [Window] title.
+  final String? windowName;
+
+  /// The style flags of this [Window] to pass to [CreateWindowEx].
+  final int windowStyles;
+
+  /// The background color of this [Window] (if applicable).
+  int? bgColor;
+
+  /// The [hMenu] parameter passed to [CreateWindowEx].
+  /// - If this is a [ChildWindow] this is the child element ID ([ChildWindow.id]).
+  final int? hMenu;
+
+  /// The parent [Window] of this instance.
+  /// - See [ChildWindow].
+  final Window? parent;
+
+  /// If `true` will perform a default repaint and
+  /// will NOT call the custom [repaint] method.
+  bool defaultRepaint;
+
+  Window(
+      {required this.windowClass,
+      this.windowName,
+      this.windowStyles = 0,
+      super.x,
+      super.y,
+      super.width,
+      super.height,
+      this.bgColor,
+      this.hMenu,
+      required this.defaultRepaint,
+      this.parent}) {
+    windowClass.register();
+    windowClass.registerWindow(this);
+
+    parent?._addChild(this);
+  }
+
+  Pointer<Utf16>? _windowNameNative;
+
+  Pointer<Utf16> get windowNameNative =>
+      _windowNameNative ??= windowName?.toNativeUtf16() ?? nullptr;
+
+  static int _createIdCount = 0;
+
+  final int _createId = ++_createIdCount;
+
+  @override
+  int get createId => _createId;
+
+  int? _hwnd;
+
+  @override
+  int? get hwndIfCreated => _hwnd;
+
+  /// Creates this [Window].
+  Future<int> create({bool createChildren = true}) async {
+    await ensureLoaded();
+
+    final createIdPtr = calloc<Uint32>();
+    createIdPtr.value = _createId;
+
+    final hwnd = createWindowImpl(createIdPtr);
+
+    if (hwnd == 0) {
+      var errorCode = GetLastError();
+      throw StateError("Can't create window> errorCode: $errorCode -> $this");
+    }
+
+    if (_hwnd != null && _hwnd != hwnd) {
+      throw StateError(
+          "`WM_CREATE` `Window` lookup error: _hwnd:$_hwnd != hwnd:$hwnd");
+    }
+
+    _hwnd = hwnd;
+
+    _logWindow.info("Created Window #$hwnd: $this");
+
+    if (createChildren) {
+      for (var c in _children) {
+        await c.create();
+      }
+    }
+
+    updateWindow();
+
+    return hwnd;
+  }
+
+  /// Window creation implementation.
+  /// - Calls Win32 [CreateWindowEx] by default.
+  /// - Allows @[override].
+  int createWindowImpl(Pointer<Uint32> createIdPtr) => CreateWindowEx(
+      // Optional window styles:
+      0,
+
+      // Window class:
+      windowClass.classNameNative,
+
+      // Window text:
+      windowNameNative,
+
+      // Window style:
+      windowStyles,
+
+      // Size and position:
+      x ?? CW_USEDEFAULT,
+      y ?? CW_USEDEFAULT,
+      width ?? CW_USEDEFAULT,
+      height ?? CW_USEDEFAULT,
+
+      // Parent window:
+      parent?._hwnd ?? NULL,
+      // Menu:
+      hMenu ?? NULL,
+      // Instance handle:
+      hInstance,
+      // Pass the `_createId`
+      createIdPtr);
+
+  final List<Window> _children = [];
+
+  List<Window> get children => UnmodifiableListView(_children);
+
+  void _addChild(Window child) {
+    if (_children.contains(child)) {
+      throw StateError("Child already added: $child");
+    }
+
+    _logWindow.info(
+        'Add child> #$hwndIfCreated<${windowClass.className}>[${windowName ?? ''}] -> ${child.hwndIfCreated}<${child.windowClass.className}>[${child.windowName ?? ''}]');
+
+    _children.add(child);
+  }
+
+  @override
+  Future<void> _callLoad() async {
+    await load();
+
+    for (var child in _children) {
+      await child.ensureLoaded();
+    }
+  }
+
+  /// Calls [repaint] resolving necessary parameters.
+  /// - Used by [WindowClass.windowProcDefault].
+  bool callRepaint({int? hdc}) {
+    ensureLoaded();
+
+    final hwnd = this.hwnd;
+
+    if (defaultRepaint) {
+      return false;
+    }
+
+    if (hdc == null) {
+      final ps = calloc<PAINTSTRUCT>();
+      final hdc = BeginPaint(hwnd, ps);
+
+      _callRepaintImpl(hwnd, hdc);
+      EndPaint(hwnd, ps);
+    } else {
+      _callRepaintImpl(hwnd, hdc);
+    }
+
+    return true;
+  }
+
+  void _callRepaintImpl(int hwnd, int hdc) {
+    fetchDimension();
+    repaint(hwnd, hdc);
+  }
+
+  /// [Window] custom repaint procedure.
+  /// - [defaultRepaint] should be `false` to call a custom [repaint].
+  void repaint(int hwnd, int hdc) {}
+
+  /// Sends quit message with [exitCode].
+  /// - Calls Win32 [PostQuitMessage].
+  static void quit([int exitCode = 0]) {
+    PostQuitMessage(exitCode);
+  }
+
+  /// Paint operation: draws this [Window] background.
+  void drawBG(int hdc, {int? bgColor}) {
+    bgColor ??= this.bgColor;
+
+    if (bgColor != null) {
+      fillRect(hdc, bgColor, pRect: dimension);
+    }
+  }
+
+  static final Map<String, int> _imagesCached = {};
 
   /// Cached version of [loadImage].
   /// -- See [getBitmapDimension].
-  int loadImageCached(String imgPath, {int imgWidth = 0, int imgHeight = 0}) =>
+  static int loadImageCached(String imgPath,
+          {int imgWidth = 0, int imgHeight = 0}) =>
       _imagesCached[imgPath] ??=
           loadImage(imgPath, imgWidth: imgWidth, imgHeight: imgHeight);
 
   /// Loads image from [imgPath] with dimension [imgWidth], [imgHeight].
   /// - The image should be a 24bit Bitmap.
   /// - See [loadImageCached] and [getBitmapDimension].
-  int loadImage(String imgPath, {int imgWidth = 0, int imgHeight = 0}) {
+  static int loadImage(String imgPath, {int imgWidth = 0, int imgHeight = 0}) {
     var imgPathPtr = imgPath.toNativeUtf16();
     final hBitmap = LoadImage(
         NULL, imgPathPtr, IMAGE_BITMAP, imgWidth, imgHeight, LR_LOADFROMFILE);
@@ -1140,7 +1249,7 @@ class Window {
 
   /// Returns the [hBitmap] dimension.
   /// - Calls [GetObject].
-  ({int width, int height})? getBitmapDimension(int hBitmap) {
+  static ({int width, int height})? getBitmapDimension(int hBitmap) {
     var bm = calloc<BITMAP>();
 
     var ok = GetObject(hBitmap, sizeOf<BITMAP>(), bm) != 0;
@@ -1153,16 +1262,6 @@ class Window {
     free(bm);
 
     return dimension;
-  }
-
-  /// Paint operation: draws [hBitmap] at coordinates [x], [y].
-  /// - Calls Win32 [BitBlt] to copy the Bitmap bytes to this [Window].
-  void drawImage(int hdc, int hBitmap, int x, int y, int width, int height) {
-    final hMemDC = CreateCompatibleDC(hdc);
-
-    SelectObject(hMemDC, hBitmap);
-    BitBlt(hdc, x, y, width, height, hMemDC, 0, 0, SRCCOPY);
-    DeleteObject(hMemDC);
   }
 
   int? _iconSmall;
@@ -1206,15 +1305,15 @@ class Window {
     }
   }
 
-  final Map<String, int> _iconsCache = {};
+  static final Map<String, int> _iconsCache = {};
 
-  int loadIconCached(String iconPath, int width, int height) {
+  static int loadIconCached(String iconPath, int width, int height) {
     var cacheKey = '$iconPath @> $width;$height';
     return _iconsCache[cacheKey] ??= loadIcon(iconPath, width, height);
   }
 
   /// Loads an icon with dimensions [width] and [height] from [iconPath].
-  int loadIcon(String iconPath, int width, int height) {
+  static int loadIcon(String iconPath, int width, int height) {
     var iconPathPtr = iconPath.toNativeUtf16();
     var hIcon = LoadImage(
         NULL, iconPathPtr, IMAGE_ICON, width, height, LR_LOADFROMFILE);
@@ -1223,6 +1322,7 @@ class Window {
   }
 
   /// Processes a [WM_COMMAND] message. Also calls [processCommand] for [children] [Window]s.
+  @override
   void processCommand(int hwnd, int hdc, int wParam, int lParam) {
     for (var child in _children) {
       if (child._hwnd == lParam) {
@@ -1231,72 +1331,12 @@ class Window {
     }
   }
 
-  /// Processes a [WM_CLOSE] message or a [close] call.
-  /// - If returns `null` (not processed), will delegate to the default behavior of [DefWindowProc] (call [DestroyWindow]).
-  /// - If returns `true` tells to close the window (minimize).
-  /// - If returns `false` tells to abort the window closing (do nothing).
+  @override
   bool? processClose() => true;
 
-  /// Processes a [WM_DESTROY] message.
-  void processDestroy() {}
-
-  /// Processes a message.
-  /// - Called by [WindowClass.windowProcDefault] when the messages doesn't have a default processor.
-  /// - Should return a value if this messages was processed, or `null` to send to [DefWindowProc].
-  int? processMessage(int hwnd, int uMsg, int wParam, int lParam) => null;
-
-  final StreamController<Window> _onClose = StreamController();
-
-  /// On close event (after [WM_CLOSE] message).
-  /// - Called by [WindowClass.windowProcDefault].
-  Stream<Window> get onClose => _onClose.stream;
-
-  void _notifyClose() {
-    _onClose.add(this);
-  }
-
-  final StreamController<Window> _onDestroyed = StreamController();
-
-  /// On destroy event (after [WM_DESTROY] -> [WM_NCDESTROY] messages).
-  /// - Called by [WindowClass.windowProcDefault].
-  Stream<Window> get onDestroyed => _onDestroyed.stream;
-
-  bool _destroyed = false;
-
-  /// Returns `true` if the window was [destroy]ed and the `WM_NCDESTROY` was processed.
-  /// - See [onDestroyed].
-  bool get isDestroyed => _destroyed;
-
-  void _notifyDestroyed() {
-    _destroyed = true;
-
-    _onDestroyed.add(this);
-
-    var waitingDestroyed = _waitingDestroyed;
-    if (waitingDestroyed != null && !waitingDestroyed.isCompleted) {
-      waitingDestroyed.complete(true);
-      _waitingDestroyed = null;
-    }
-
+  @override
+  void doDestroy() {
     windowClass.unregisterWindow(this);
-  }
-
-  Completer<bool>? _waitingDestroyed;
-
-  /// Waits for this window to be destroyed.
-  /// - If [timeout] is defined it will return `false` on timeout.
-  Future<bool> waitDestroyed({Duration? timeout}) {
-    if (_destroyed) return Future.value(true);
-
-    var waitingDestroyed = _waitingDestroyed ??= Completer();
-
-    var future = waitingDestroyed.future;
-
-    if (timeout != null) {
-      future = future.timeout(timeout, onTimeout: () => false);
-    }
-
-    return future;
   }
 
   @override

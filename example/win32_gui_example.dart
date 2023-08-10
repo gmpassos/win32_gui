@@ -155,8 +155,8 @@ class MainWindow extends Window {
   // Custom repaint. Called when processing a `WM_PAINT` message and `this.defaultRepaint = false`:
   @override
   void repaint(int hwnd, int hdc) {
-    var hBitmap = loadImageCached(imageDartLogoPath);
-    var imgDimension = getBitmapDimension(hBitmap);
+    var hBitmap = Window.loadImageCached(imageDartLogoPath);
+    var imgDimension = Window.getBitmapDimension(hBitmap);
 
     // Valid Bitmap:
     if (imgDimension != null) {

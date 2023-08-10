@@ -6,6 +6,7 @@
   - Added `showMessage`, `showConfirmationDialog` and `showDialog`.
   - Free some pointers.
 - New `Dialog`.
+- New `WindowBase`: base class for `Window` and `Dialog`.
 - New `Win32Thread`.
 
 ## 1.0.9

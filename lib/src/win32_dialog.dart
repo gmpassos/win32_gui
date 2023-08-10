@@ -12,7 +12,7 @@ import 'win32_gui_base.dart';
 final _logDialog = logging.Logger('Win32:Dialog');
 
 /// A Win32 Dialog.
-class Dialog<R> {
+class Dialog<R> extends WindowBase<Dialog> {
   static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
     var result = 0;
 
@@ -117,18 +117,6 @@ class Dialog<R> {
   /// The [Dialog] title.
   String? title;
 
-  /// The [Dialog] [x] coordinate.
-  int? x;
-
-  /// The [Dialog] [y] coordinate.
-  int? y;
-
-  /// The [Dialog] [width] dimension.
-  int? width;
-
-  /// The [Dialog] [height] dimension.
-  int? height;
-
   /// The [Dialog] [fontName].
   String? fontName;
 
@@ -151,10 +139,10 @@ class Dialog<R> {
   Dialog({
     this.style = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE,
     this.title,
-    this.x,
-    this.y,
-    this.width,
-    this.height,
+    super.x,
+    super.y,
+    super.width,
+    super.height,
     this.fontName,
     this.fontSize,
     this.items = const [],
@@ -175,29 +163,17 @@ class Dialog<R> {
     registerDialog(this);
   }
 
-  /// Returns `true` if this [Window] was created.
-  bool get created => _hwnd != null;
-
-  int? _hwnd;
-
-  /// The window handler ID (if [created]).
-  int get hwnd {
-    final hwnd = _hwnd;
-    if (hwnd == null) {
-      throw StateError(
-          "Dialog not created! `hwnd` not defined! Method `create()` should be called before use of `hwnd`.");
-    }
-    return hwnd;
-  }
-
-  /// Returns the window handler ID if [created] or `null`.
-  int? get hwndIfCreated => _hwnd;
-
   static int _createIdCount = 0;
 
   final int _createId = ++_createIdCount;
 
+  @override
   int get createId => _createId;
+
+  int? _hwnd;
+
+  @override
+  int? get hwndIfCreated => _hwnd;
 
   /// Creates the [Dialog].
   int create() {
@@ -348,14 +324,9 @@ class Dialog<R> {
     return false;
   }
 
-  void callBuild({required int hdc}) {
-    build(hwnd, hdc);
-  }
-
-  void build(int hwnd, int hdc) {}
-
   /// Processes a [Dialog] command, usually a button click.
   /// - By default calls [onCommand] if defined, otherwise [setResultDynamic].
+  @override
   void processCommand(int hwnd, int hdc, int wParam, int lParam) {
     _logDialog.info(
         '[hwnd: $hwnd, hdc: $hdc] processCommand> wParam: $wParam, lParam: $lParam');
@@ -367,6 +338,14 @@ class Dialog<R> {
     } else {
       setResultDynamic([wParam, lParam]);
     }
+  }
+
+  @override
+  bool? processClose() => null;
+
+  @override
+  void doDestroy() {
+    unregisterDialog(this);
   }
 
   @override
