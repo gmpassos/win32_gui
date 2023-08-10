@@ -117,7 +117,7 @@ class MainWindow extends Window {
   void _onButtonOK(int w, int l) async {
     print('** Button OK Click!');
 
-    var dialogConfirmExit = DialogConfirmExit(parent: this);
+    var dialogConfirmExit = DialogExample(parent: this);
 
     dialogConfirmExit.onTimeout.listen((event) {
       showMessage(
@@ -242,12 +242,12 @@ class TextOutput extends RichEdit {
   }
 }
 
-class DialogConfirmExit extends Dialog<int> {
-  DialogConfirmExit({required super.parent})
+class DialogExample extends Dialog<int> {
+  DialogExample({required super.parent})
       : super(
             dialogFunction:
                 Pointer.fromFunction<DlgProc>(Dialog.dialogProcDefault, 0),
-            title: 'Dialog Sample',
+            title: 'Dialog Example',
             x: 0,
             y: 0,
             width: 4 + 50 + 4 + 50 + 4,
@@ -279,4 +279,19 @@ class DialogConfirmExit extends Dialog<int> {
                 text: 'No',
               ),
             ]);
+
+  late final String iconDartLogoPath;
+
+  @override
+  Future<void> load() async {
+    iconDartLogoPath = await Window.resolveFilePath(
+        'package:win32_gui/resources/dart-icon.ico');
+
+    print('-- iconDartLogoPath: $iconDartLogoPath');
+  }
+
+  @override
+  void build(int hwnd, int hdc) {
+    setIcon(iconDartLogoPath);
+  }
 }
