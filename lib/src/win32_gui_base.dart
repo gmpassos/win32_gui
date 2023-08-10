@@ -688,6 +688,10 @@ abstract class WindowBase<W extends WindowBase<W>> {
     return InvalidateRect(hwnd, r ?? nullptr, eraseBg ? 1 : 0) != 0;
   }
 
+  /// Request a [WM_PAINT] event of the entire [Window] client area.
+  /// - Calls [invalidateRect] without any parameter.
+  bool requestRepaint() => invalidateRect();
+
   /// Sets this [Window] rounded corners attributes.
   /// - If [rounded] is `true` will set this [Window] with rounded corners,
   ///   otherwise will disable the rounded corners.
@@ -720,7 +724,6 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
-    updateWindow();
   }
 
   /// Minimizes this [Window].
@@ -737,7 +740,6 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_MAXIMIZE);
-    updateWindow();
   }
 
   /// Restores this [Window].
@@ -746,7 +748,6 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hwnd = this.hwnd;
 
     ShowWindow(hwnd, SW_RESTORE);
-    updateWindow();
   }
 
   /// Returns if this [Window] is minimized.
@@ -1124,8 +1125,6 @@ class Window extends WindowBase<Window> {
         await c.create();
       }
     }
-
-    updateWindow();
 
     return hwnd;
   }

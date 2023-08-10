@@ -1,3 +1,9 @@
+## 1.0.12
+
+- `WindowBase`:
+  - Added `requestRepaint`.
+  - Removed unnecessary calls to `updateWindow`.
+
 ## 1.0.11
 
 - export 'src/win32_dialog.dart';
