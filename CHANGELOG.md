@@ -1,3 +1,8 @@
+## 1.1.1
+
+- `WindowClassColors`:
+  - Added `dialogColors`
+
 ## 1.1.0
 
 - `WindowBase`:

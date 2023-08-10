@@ -112,6 +112,9 @@ class WindowClass {
   /// Defines the colors for `WM_CTLCOLORSCROLLBAR` message.
   static WindowClassColors? scrollBarColors;
 
+  /// Defines the colors for `WM_CTLCOLORDLG` message.
+  static WindowClassColors? dialogColors;
+
   /// A default implementation of a [windowProc] function associated with a [windowClass].
   static int windowProcDefault(
       int hwnd, int uMsg, int wParam, int lParam, WindowClass windowClass) {
@@ -228,6 +231,10 @@ class WindowClass {
       case WM_CTLCOLORSCROLLBAR:
         {
           result = _setColors(wParam, scrollBarColors);
+        }
+      case WM_CTLCOLORDLG:
+        {
+          result = _setColors(wParam, dialogColors);
         }
 
       case WM_CLOSE:
