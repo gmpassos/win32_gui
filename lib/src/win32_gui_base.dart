@@ -235,7 +235,7 @@ class WindowClass {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           if (window != null) {
             var shouldClose = window.processClose();
-            window._notifyClose();
+            window.notifyClose();
 
             if (shouldClose == null) {
               result = DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -766,7 +766,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hwnd = this.hwnd;
 
     var shouldClose = processClose();
-    _notifyClose();
+    notifyClose();
 
     if (shouldClose == null) {
       CloseWindow(hwnd);
@@ -924,7 +924,8 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// - Called by [WindowClass.windowProcDefault].
   Stream<W> get onClose => _onClose.stream;
 
-  void _notifyClose() {
+  /// Should be called while processing a [WM_CLOSE] message.
+  void notifyClose() {
     _onClose.add(this as W);
   }
 

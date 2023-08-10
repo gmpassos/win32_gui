@@ -23,41 +23,90 @@ class Dialog<R> extends WindowBase<Dialog> {
 
     switch (uMsg) {
       case WM_INITDIALOG:
-        dialog = getDialogWithHWnd(hwnd);
+        {
+          dialog = getDialogWithHWnd(hwnd);
 
-        // Lookup `Dialog` by `_createId`:
-        if (dialog == null && lParam != 0) {
-          dialog = getDialogWithCreateIdPtr(hwnd, lParam, nullHwnd: true);
+          // Lookup `Dialog` by `_createId`:
+          if (dialog == null && lParam != 0) {
+            dialog = getDialogWithCreateIdPtr(hwnd, lParam, nullHwnd: true);
 
-          dialog?._hwnd = hwnd;
-        }
+            dialog?._hwnd = hwnd;
+          }
 
-        _logDialog.info(() => "WM_INITDIALOG> hwnd: $hwnd ; window: $dialog");
+          _logDialog.info(() => "WM_INITDIALOG> hwnd: $hwnd ; window: $dialog");
 
-        final hdc = GetDC(hwnd);
-
-        if (dialog != null) {
-          dialog.callBuild(hdc: hdc);
-        }
-
-        ReleaseDC(hwnd, hdc);
-
-        result = TRUE;
-      case WM_COMMAND:
-        dialog = getDialogWithHWnd(hwnd);
-
-        if (dialog != null) {
           final hdc = GetDC(hwnd);
-          dialog.processCommand(hwnd, hdc, wParam, lParam);
+
+          if (dialog != null) {
+            dialog.callBuild(hdc: hdc);
+          }
+
           ReleaseDC(hwnd, hdc);
 
           result = TRUE;
         }
+      case WM_COMMAND:
+        {
+          dialog = getDialogWithHWnd(hwnd);
 
-        result = FALSE;
-        break;
+          if (dialog != null) {
+            final hdc = GetDC(hwnd);
+            dialog.processCommand(hwnd, hdc, wParam, lParam);
+            ReleaseDC(hwnd, hdc);
+
+            result = TRUE;
+          }
+
+          result = FALSE;
+        }
+
+      case WM_CLOSE:
+        {
+          dialog = getDialogWithHWnd(hwnd);
+          if (dialog != null) {
+            var shouldClose = dialog.processClose();
+            dialog.notifyClose();
+
+            if (shouldClose == null) {
+              result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+            } else if (shouldClose) {
+              dialog.destroy();
+              result = 0;
+            } else {
+              result = 0;
+            }
+          }
+        }
+
+      case WM_DESTROY:
+        {
+          dialog = getDialogWithHWnd(hwnd);
+          if (dialog != null) {
+            dialog.processDestroy();
+            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+          }
+        }
+      case WM_NCDESTROY:
+        {
+          dialog = getDialogWithHWnd(hwnd);
+          dialog?.notifyDestroyed();
+        }
+
       default:
-        result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+        {
+          int? processed;
+
+          dialog = getDialogWithHWnd(hwnd);
+          if (dialog != null) {
+            processed = dialog.processMessage(hwnd, uMsg, wParam, lParam);
+          }
+
+          if (processed != null) {
+            result = processed;
+          } else {
+            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+          }
+        }
     }
 
     return result;
