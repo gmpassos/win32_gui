@@ -539,7 +539,7 @@ class WindowMessageLoop {
       } else {
         ++noMessageCount;
 
-        if (noMessageCount >= 3) {
+        if (noMessageCount >= 2) {
           break;
         }
       }
