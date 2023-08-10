@@ -120,7 +120,7 @@ class WindowClass {
     // var name = Win32Constants.wmByID[uMsg];
     // print('winProc[default]> uMsg: $uMsg ; name: $name');
 
-    _logWindow.info(
+    _logWindow.info(() =>
         'windowProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam, windowClass: ${windowClass.className}');
 
     final windowGlobal = windowClass.lookupWindowGlobally;
@@ -139,7 +139,7 @@ class WindowClass {
             window?._hwnd = hwnd;
           }
 
-          _logWindow.info("WM_CREATE> hwnd: $hwnd ; window: $window");
+          _logWindow.info(() => "WM_CREATE> hwnd: $hwnd ; window: $window");
 
           final hdc = GetDC(hwnd);
 
@@ -598,7 +598,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     ensureLoaded();
     final hwnd = this.hwnd;
 
-    _logWindow.info("Building> $this");
+    _logWindow.info(() => "Building> $this");
 
     if (hdc == null) {
       final hdc = GetDC(hwnd);
@@ -1111,7 +1111,7 @@ class Window extends WindowBase<Window> {
 
     _hwnd = hwnd;
 
-    _logWindow.info("Created Window #$hwnd: $this");
+    _logWindow.info(() => "Created Window #$hwnd: $this");
 
     if (createChildren) {
       for (var c in _children) {
@@ -1164,7 +1164,7 @@ class Window extends WindowBase<Window> {
       throw StateError("Child already added: $child");
     }
 
-    _logWindow.info(
+    _logWindow.info(() =>
         'Add child> #$hwndIfCreated<${windowClass.className}>[${windowName ?? ''}] -> ${child.hwndIfCreated}<${child.windowClass.className}>[${child.windowName ?? ''}]');
 
     _children.add(child);

@@ -16,7 +16,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
     var result = 0;
 
-    _logDialog.info(
+    _logDialog.info(() =>
         'Dialog.dialogProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam');
 
     Dialog? dialog;
@@ -32,7 +32,7 @@ class Dialog<R> extends WindowBase<Dialog> {
           dialog?._hwnd = hwnd;
         }
 
-        _logDialog.info("WM_INITDIALOG> hwnd: $hwnd ; window: $dialog");
+        _logDialog.info(() => "WM_INITDIALOG> hwnd: $hwnd ; window: $dialog");
 
         final hdc = GetDC(hwnd);
 
@@ -136,6 +136,10 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// The command of this [Dialog] when clicked.
   final void Function(int wParam, int lParam)? onCommand;
 
+  /// The [Dialog] [result] timeout.
+  /// - Triggers [finish] on timeout;
+  final Duration? timeout;
+
   Dialog({
     this.style = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE,
     this.title,
@@ -149,6 +153,7 @@ class Dialog<R> extends WindowBase<Dialog> {
     Pointer<NativeFunction<DlgProc>>? dialogFunction,
     this.parent,
     this.onCommand,
+    this.timeout,
   }) : dialogFunction = dialogFunction ?? dialogProcDefaultPtr {
     final title = this.title;
     if (title != null && title.isNotEmpty) {
@@ -161,6 +166,42 @@ class Dialog<R> extends WindowBase<Dialog> {
     }
 
     registerDialog(this);
+
+    setupTimeout();
+  }
+
+  Timer? _timeoutTimer;
+
+  Timer? get timeoutTimer => _timeoutTimer;
+
+  void setupTimeout() {
+    final timeout = this.timeout;
+    if (timeout == null) return;
+
+    _timeoutTimer = Timer(timeout, () {
+      _notifyTimeout();
+    });
+  }
+
+  bool _timeoutTriggered = false;
+
+  /// Returns `true` if [timeout] was triggered.
+  bool get timeoutTriggered => _timeoutTriggered;
+
+  final StreamController<Dialog> _onTimeout = StreamController();
+
+  /// On [timeout] triggered.
+  Stream<Dialog> get onTimeout => _onTimeout.stream;
+
+  void _notifyTimeout() {
+    if (!_resultSet) {
+      _timeoutTriggered = true;
+      finish();
+
+      _logDialog.info(() => "Dialog$_hwnd timeout!");
+
+      _onTimeout.add(this);
+    }
   }
 
   static int _createIdCount = 0;
@@ -265,7 +306,10 @@ class Dialog<R> extends WindowBase<Dialog> {
       _waitingResult = null;
     }
 
-    _logDialog.info("Dialog#$_hwnd result: $result");
+    _logDialog.info(() => "Dialog#$_hwnd result: $result");
+
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
 
     doClose();
   }
@@ -351,11 +395,16 @@ class Dialog<R> extends WindowBase<Dialog> {
     return false;
   }
 
+  void finish([R? result]) {
+    this.result = result;
+    assert(isResultSet);
+  }
+
   /// Processes a [Dialog] command, usually a button click.
   /// - By default calls [onCommand] if defined, otherwise [setResultDynamic].
   @override
   void processCommand(int hwnd, int hdc, int wParam, int lParam) {
-    _logDialog.info(
+    _logDialog.info(() =>
         '[hwnd: $hwnd, hdc: $hdc] processCommand> wParam: $wParam, lParam: $lParam');
 
     final onCommand = this.onCommand;

@@ -102,16 +102,7 @@ class MainWindow extends Window {
         y: 414,
         width: 100,
         height: 32,
-        onCommand: (w, l) async {
-          print('** Button OK Click!');
-
-          var dialogConfirmExit = DialogConfirmExit(parent: this);
-          dialogConfirmExit.create();
-
-          var result = await dialogConfirmExit.waitAndGetResult();
-
-          print('** DialogConfirmExit result: $result');
-        });
+        onCommand: _onButtonOK);
 
     // The exit button (`destroy` this Window).
     buttonExit = Button(
@@ -121,10 +112,38 @@ class MainWindow extends Window {
         y: 414,
         width: 100,
         height: 32,
-        onCommand: (w, l) {
-          print('** Button Exit Click!');
-          destroy();
-        });
+        onCommand: _onButtonExit);
+  }
+
+  void _onButtonOK(int w, int l) async {
+    print('** Button OK Click!');
+
+    var dialogConfirmExit = DialogConfirmExit(parent: this);
+
+    dialogConfirmExit.onTimeout.listen((event) {
+      showMessage(
+        'Dialog Timeout',
+        'Dialog Timeout> result: ${dialogConfirmExit.result} ; timeout: ${dialogConfirmExit.timeout?.inMilliseconds} ms',
+      );
+    });
+
+    dialogConfirmExit.onDestroyed.listen((_) {
+      showMessage(
+        'Dialog Result',
+        'Dialog Closed> result: ${dialogConfirmExit.result} ; timeout: ${dialogConfirmExit.timeout?.inMilliseconds} ms',
+      );
+    });
+
+    dialogConfirmExit.create();
+
+    var result = await dialogConfirmExit.waitAndGetResult();
+
+    print('** DialogConfirmExit result: $result');
+  }
+
+  void _onButtonExit(int w, int l) {
+    print('** Button Exit Click!');
+    destroy();
   }
 
   late final String imageDartLogoPath;
@@ -227,11 +246,12 @@ class DialogConfirmExit extends Dialog<int> {
       : super(
             dialogFunction:
                 Pointer.fromFunction<DlgProc>(Dialog.dialogProcDefault, 0),
-            title: 'Exit Confirmation',
+            title: 'Dialog Sample',
             x: 0,
             y: 0,
             width: 250,
             height: 200,
+            timeout: Duration(seconds: 10),
             items: [
               DialogItem(
                 style: WS_CHILD | WS_VISIBLE,
@@ -241,7 +261,7 @@ class DialogConfirmExit extends Dialog<int> {
                 height: 32,
                 id: 0,
                 windowClass: 'static',
-                text: 'Exit Application?',
+                text: 'Yes or No? (timeout: 10s)',
               ),
               DialogItem(
                 style: WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
