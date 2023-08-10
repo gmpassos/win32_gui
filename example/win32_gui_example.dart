@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:win32_gui/src/win32_dialog.dart';
@@ -51,6 +52,12 @@ Future<void> main() async {
   mainWindow.onDestroyed.listen((window) {
     print('-- Main Window Destroyed> $window');
     exit(0);
+  });
+
+  // A Dart timer.
+  // Shows that Dart is dispatching calls and Win32 is not blocking them.
+  Timer.periodic(Duration(seconds: 1), (timer) {
+    print('TIMER> ${DateTime.now()}');
   });
 
   // Run the Win32 Window message loop:

@@ -265,6 +265,8 @@ class Dialog<R> extends WindowBase<Dialog> {
       _waitingResult = null;
     }
 
+    _logDialog.info("Dialog#$_hwnd result: $result");
+
     doClose();
   }
 
