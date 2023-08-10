@@ -16,6 +16,7 @@ Future<void> main() async {
   // Set the colors of pre-defined Window classes (affects `RichEdit`):
   WindowClass.editColors = editColors;
   WindowClass.staticColors = editColors;
+  WindowClass.dialogColors = editColors;
 
   // A custom main Window class declared bellow:
   var mainWindow = MainWindow(
