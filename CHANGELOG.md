@@ -1,7 +1,8 @@
 ## 1.1.2
 
 - `WindowBase`:
-  - `destroy`: returns `bool` and warns failed calls.
+  - `destroy`: returns `bool`, retry and warns failed calls.
+  - `close`: retry and warns failed calls.
 
 ## 1.1.1
 

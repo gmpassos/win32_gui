@@ -789,26 +789,29 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   /// Minimizes this [Window].
   /// - Calls Win32 [ShowWindow] [SW_MINIMIZE].
-  void minimize() {
+  bool minimize() {
     final hwnd = this.hwnd;
 
-    ShowWindow(hwnd, SW_MINIMIZE);
+    var r = ShowWindow(hwnd, SW_MINIMIZE);
+    return r != 0;
   }
 
   /// Maximized this [Window].
   /// - Calls Win32 [ShowWindow] [SW_MAXIMIZE].
-  void maximize() {
+  bool maximize() {
     final hwnd = this.hwnd;
 
-    ShowWindow(hwnd, SW_MAXIMIZE);
+    var r = ShowWindow(hwnd, SW_MAXIMIZE);
+    return r == 0;
   }
 
   /// Restores this [Window].
   /// - Calls Win32 [ShowWindow] [SW_RESTORE].
-  void restore() {
+  bool restore() {
     final hwnd = this.hwnd;
 
-    ShowWindow(hwnd, SW_RESTORE);
+    var r = ShowWindow(hwnd, SW_RESTORE);
+    return r == 0;
   }
 
   /// Returns if this [Window] is minimized.
@@ -836,7 +839,18 @@ abstract class WindowBase<W extends WindowBase<W>> {
     notifyClose();
 
     if (shouldClose == null) {
-      CloseWindow(hwnd);
+      var r = CloseWindow(hwnd);
+      // retry:
+      if (r == 0) {
+        r = CloseWindow(hwnd);
+      }
+
+      if (r == 0) {
+        final errorCode = GetLastError();
+        _logWindow.warning(
+            "Error closing `Window`> errorCode: $errorCode ; hwnd: $hwnd -> $this");
+        return false;
+      }
       return true;
     } else if (shouldClose) {
       if (!isMinimized) {
@@ -854,11 +868,15 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hwnd = this.hwnd;
 
     var r = DestroyWindow(hwnd);
+    // retry:
+    if (r == 0) {
+      r = DestroyWindow(hwnd);
+    }
+
     if (r == 0) {
       final errorCode = GetLastError();
       _logWindow.warning(
-          "Error closing `Window`> errorCode: $errorCode > $hwnd -> $this");
-
+          "Error destroying `Window`> errorCode: $errorCode ; hwnd: $hwnd -> $this");
       return false;
     }
 
