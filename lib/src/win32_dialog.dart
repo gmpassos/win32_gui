@@ -300,8 +300,25 @@ class Dialog<R> extends WindowBase<Dialog> {
     return future;
   }
 
+  /// Calls [waitResult] then returns [result]:
+  Future<R?> waitAndGetResult({Duration? timeout}) {
+    return waitResult(timeout: timeout).then((_) => result);
+  }
+
   /// Tries to set this [Dialog] [result] to [r] as [R].
   bool setResultDynamic(dynamic r) {
+    if (r is int && R == int) {
+      var ok = _setResultDynamicImpl(r);
+      assert(ok);
+      return true;
+    }
+
+    if (r is String && R == String) {
+      var ok = _setResultDynamicImpl(r);
+      assert(ok);
+      return true;
+    }
+
     if (_setResultDynamicImpl(r)) {
       return true;
     }

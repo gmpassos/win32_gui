@@ -108,7 +108,7 @@ class MainWindow extends Window {
           var dialogConfirmExit = DialogConfirmExit(parent: this);
           dialogConfirmExit.create();
 
-          var result = await dialogConfirmExit.waitResult();
+          var result = await dialogConfirmExit.waitAndGetResult();
 
           print('** DialogConfirmExit result: $result');
         });
@@ -222,7 +222,7 @@ class TextOutput extends RichEdit {
   }
 }
 
-class DialogConfirmExit extends Dialog {
+class DialogConfirmExit extends Dialog<int> {
   DialogConfirmExit({required super.parent})
       : super(
             dialogFunction:
