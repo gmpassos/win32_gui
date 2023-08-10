@@ -1,3 +1,11 @@
+## 1.1.3
+
+- `WindowMessageLoop`:
+  - Added `consumeQueue`.
+- `WindowBase`:
+  - `destroy`: try `consumeQueue` before retry.
+  - `close`: try `consumeQueue` before retry.
+
 ## 1.1.2
 
 - `WindowBase`:

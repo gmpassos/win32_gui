@@ -429,7 +429,7 @@ class WindowClass {
 
 /// The [Window] message loop implementation.
 class WindowMessageLoop {
-  /// Runs a [Window] message loop that blocks the current thread/`Isolate`.
+  /// Runs a [Window] message consumer loop that blocks the current thread/`Isolate`.
   ///
   /// - If [condition] is passed loops while [condition] is `true`.
   /// - Uses Win32 [GetMessage] to consume the [Window] messages (blocking call).
@@ -443,13 +443,15 @@ class WindowMessageLoop {
       TranslateMessage(msg);
       DispatchMessage(msg);
     }
+
+    free(msg);
   }
 
   static const yieldMS1 = Duration(milliseconds: 1);
   static const yieldMS10 = Duration(milliseconds: 10);
   static const yieldMS30 = Duration(milliseconds: 30);
 
-  /// Runs a [Window] message loop capable to [timeout] and also
+  /// Runs a [Window] message consumer loop capable to [timeout] and also
   /// allows Dart [Future]s to be processed while processing messages.
   ///
   /// - If [condition] is passed loops while [condition] is `true`.
@@ -507,6 +509,43 @@ class WindowMessageLoop {
         }
       }
     }
+
+    free(msg);
+
+    return totalMsgCount;
+  }
+
+  /// Consumes the message queue.
+  /// - Calls Win32 [PeekMessage] (removing from que queue).
+  /// - Stops after consume reaches [maxMessages] or when the queue is empty.
+  static int consumeQueue({int maxMessages = 3}) {
+    final msg = calloc<MSG>();
+
+    var totalMsgCount = 0;
+    var noMessageCount = 0;
+
+    while (totalMsgCount < maxMessages) {
+      var got = PeekMessage(msg, NULL, 0, 0, 1);
+
+      if (got == 0) {
+        got = PeekMessage(msg, NULL, 0, 0, 1);
+      }
+
+      if (got != 0) {
+        totalMsgCount++;
+
+        TranslateMessage(msg);
+        DispatchMessage(msg);
+      } else {
+        ++noMessageCount;
+
+        if (noMessageCount >= 3) {
+          break;
+        }
+      }
+    }
+
+    free(msg);
 
     return totalMsgCount;
   }
@@ -842,6 +881,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
       var r = CloseWindow(hwnd);
       // retry:
       if (r == 0) {
+        WindowMessageLoop.consumeQueue();
         r = CloseWindow(hwnd);
       }
 
@@ -870,6 +910,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     var r = DestroyWindow(hwnd);
     // retry:
     if (r == 0) {
+      WindowMessageLoop.consumeQueue();
       r = DestroyWindow(hwnd);
     }
 
