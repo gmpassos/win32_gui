@@ -139,7 +139,7 @@ class MainWindow extends Window {
 
     var result = await dialog.waitAndGetResult();
 
-    print('** DialogConfirmExit result: $result');
+    print('** DialogExample result: $result');
   }
 
   void _onButtonExit(int w, int l) {
