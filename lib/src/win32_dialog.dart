@@ -264,6 +264,14 @@ class Dialog<R> extends WindowBase<Dialog> {
       waitingResult.complete(true);
       _waitingResult = null;
     }
+
+    doClose();
+  }
+
+  /// The close procedure. Called when [result] is set.
+  /// - Default: call [destroy].
+  void doClose() {
+    destroy();
   }
 
   Completer<bool>? _waitingResult;
