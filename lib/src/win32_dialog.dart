@@ -46,6 +46,12 @@ class Dialog<R> extends WindowBase<Dialog> {
           final hdc = GetDC(hwnd);
 
           if (dialog != null) {
+            if (dialog.useDarkMode) {
+              dialog.setupDarkMode();
+            }
+
+            dialog.setupTitleColor(dialog.titleColor);
+
             dialog.callBuild(hdc: hdc);
           }
 
@@ -206,6 +212,12 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// - Triggers [finish] on timeout;
   final Duration? timeout;
 
+  /// If `true` set's this [Dialog] frame to dark mode.
+  final bool useDarkMode;
+
+  /// The tile color of this [Dialog] frame.
+  final int? titleColor;
+
   Dialog({
     this.style = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE,
     this.title,
@@ -220,6 +232,8 @@ class Dialog<R> extends WindowBase<Dialog> {
     this.parent,
     this.onCommand,
     this.timeout,
+    this.useDarkMode = false,
+    this.titleColor,
   }) : dialogFunction = dialogFunction ?? dialogProcDefaultPtr {
     final title = this.title;
     if (title != null && title.isNotEmpty) {

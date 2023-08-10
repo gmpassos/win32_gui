@@ -163,34 +163,14 @@ class WindowClass {
 
           final hdc = GetDC(hwnd);
 
-          if (windowClass.useDarkMode) {
-            var value = malloc<BOOL>()..value = 1;
-
-            DwmSetWindowAttribute(
-                hwnd,
-                DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE,
-                value,
-                sizeOf<BOOL>());
-
-            free(value);
-          }
-
-          final titleColor = windowClass.titleColor;
-          if (titleColor != null) {
-            var value = malloc<COLORREF>()..value = titleColor;
-
-            DwmSetWindowAttribute(
-              hwnd,
-              DWMWINDOWATTRIBUTE.DWMWA_CAPTION_COLOR,
-              value,
-              sizeOf<COLORREF>(),
-            );
-
-            free(value);
-          }
-
           // Window found, build it:
           if (window != null) {
+            if (windowClass.useDarkMode) {
+              window.setupDarkMode();
+            }
+
+            window.setupTitleColor(windowClass.titleColor);
+
             window.callBuild(hdc: hdc);
             result = 0;
           }
@@ -605,6 +585,37 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// - Do not call directly, use [ensureLoaded].
   /// - Note that Win32 API [build] and [repaint] won't allow any asynchronous call ([Future]s).
   Future<void> load() async {}
+
+  /// Setup a dark mode.
+  /// - Calls Win32 [DwmSetWindowAttribute] [DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE].
+  void setupDarkMode() {
+    var value = malloc<BOOL>()..value = 1;
+
+    DwmSetWindowAttribute(
+        hwnd,
+        DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE,
+        value,
+        sizeOf<BOOL>());
+
+    free(value);
+  }
+
+  /// Setup the title color.
+  /// - Calls Win32 [DwmSetWindowAttribute] [DWMWINDOWATTRIBUTE.DWMWA_CAPTION_COLOR].
+  void setupTitleColor(int? titleColor) {
+    if (titleColor == null) return;
+
+    var value = malloc<COLORREF>()..value = titleColor;
+
+    DwmSetWindowAttribute(
+      hwnd,
+      DWMWINDOWATTRIBUTE.DWMWA_CAPTION_COLOR,
+      value,
+      sizeOf<COLORREF>(),
+    );
+
+    free(value);
+  }
 
   /// Calls [build] resolving necessary parameters.
   /// - Used by [WindowClass.windowProcDefault] or [Dialog.dialogProcDefault].
