@@ -1,3 +1,13 @@
+## 1.1.4
+
+- `README.md`:
+  - Added `Win32 Message Loop` section
+- Dart CI: update and optimize jobs.
+
+- ffi: ^2.1.0
+- win32: ^5.0.7
+- test: ^1.24.6
+
 ## 1.1.3
 
 - `WindowMessageLoop`:

@@ -11,7 +11,8 @@ import '../win32_gui_base.dart';
 final _log = logging.Logger('RichEdit');
 
 /// A [ChildWindow] of class `richedit`.
-/// See [loadRichEditLibrary].
+/// - See [loadRichEditLibrary].
+/// - See https://learn.microsoft.com/en-us/windows/win32/controls/rich-edit-controls
 class RichEdit extends ChildWindow {
   static int? _loadedRichEditLibrary;
 

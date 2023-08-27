@@ -31,14 +31,13 @@ import 'dart:io';
 import 'package:win32_gui/win32_gui.dart';
 
 Future<void> main() async {
-  // Your custom main Window class declared bellow:
+  // Your custom main Window class (declared bellow):
   var mainWindow = MainWindow(
     width: 640,
     height: 480,
   );
 
   // Create the window:
-  print('-- mainWindow.create...');
   await mainWindow.create();
   
   // Exit when the Window is closed and destroyed:
@@ -48,12 +47,10 @@ Future<void> main() async {
     exit(0);
   });
 
-  // Shows the window:
-  print('-- mainWindow.show...');
+  // Show the main Window:
   mainWindow.show();
 
   // Run the Win32 Window message loop.
-  print('-- Window.runMessageLoopAsync...');
   await Window.runMessageLoopAsync();
 }
 
@@ -135,6 +132,51 @@ class MainWindow extends Window {
     }
   }
 }
+```
+
+# Win32 Message Loop
+
+A [win32] application requires a message loop.
+Depending on the implementation of the [win32] message loop, it will block
+the Dart VM loop, responsible for dispatching `Future` executions
+and `Isolate` messages:
+
+```dart
+  final msg = calloc<MSG>();
+  while (GetMessage(msg, NULL, 0, 0) != 0) {
+    TranslateMessage(msg);
+    DispatchMessage(msg);
+  }
+  free(msg);
+```
+
+The code above is equivalent to calling `Window.runMessageLoop()`,
+and it will block any other Dart code from being executed,
+such as timers, listeners, or any dispatched `Future`.
+
+
+To circumvent this significant issue, you can make use of
+the `Window.runMessageLoopAsync()` function.
+This function not only dispatches [win32] messages but also enables
+the dispatch of Dart code by intermittently yielding control.
+
+```dart
+  // Run the Win32 Window message loop until the application completes.
+  await Window.runMessageLoopAsync();
+```
+
+If you need to run the [win32] loop for a specific duration:
+
+```dart
+  // Run the Win32 Window message loop for 10s:
+  await Window.runMessageLoopAsync(timeout: Duration(seconds: 10));
+```
+
+...or while a certain condition holds true. 
+
+```dart
+  // Run the Win32 Window message loop while the `mainWindow` is minimized:
+  await Window.runMessageLoopAsync(condition: () => mainWindow.isMinimized);
 ```
 
 # Features and bugs

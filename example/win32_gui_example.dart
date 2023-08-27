@@ -18,7 +18,7 @@ Future<void> main() async {
   WindowClass.staticColors = editColors;
   WindowClass.dialogColors = editColors;
 
-  // A custom main Window class declared bellow:
+  // A custom main Window class (declared bellow):
   var mainWindow = MainWindow(
     width: 640,
     height: 480,

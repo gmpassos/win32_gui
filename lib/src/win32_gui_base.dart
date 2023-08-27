@@ -428,6 +428,7 @@ class WindowClass {
 }
 
 /// The [Window] message loop implementation.
+/// - See https://learn.microsoft.com/en-us/windows/win32/winmsg/using-messages-and-message-queues
 class WindowMessageLoop {
   /// Runs a [Window] message consumer loop that blocks the current thread/`Isolate`.
   ///
@@ -1116,6 +1117,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
 /// A Win32 Window.
 /// - See [ChildWindow].
+/// - See https://learn.microsoft.com/en-us/windows/win32/learnwin32/what-is-a-window-
 class Window extends WindowBase<Window> {
   /// Alias to [WindowMessageLoop.runLoop].
   static void runMessageLoop({bool Function()? condition}) =>
