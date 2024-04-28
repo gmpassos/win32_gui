@@ -83,12 +83,12 @@ class RichEdit extends ChildWindow {
             1 => windowClassRich1,
             _ => windowClassEdit,
           },
-          windowStyles: WS_CHILD |
+          windowStyles: WINDOW_STYLE.WS_CHILD |
               ES_READONLY |
-              WS_VISIBLE |
-              WS_HSCROLL |
-              WS_VSCROLL |
-              WS_BORDER |
+              WINDOW_STYLE.WS_VISIBLE |
+              WINDOW_STYLE.WS_HSCROLL |
+              WINDOW_STYLE.WS_VSCROLL |
+              WINDOW_STYLE.WS_BORDER |
               ES_LEFT |
               ES_MULTILINE |
               ES_NOHIDESEL |
@@ -168,17 +168,17 @@ class RichEdit extends ChildWindow {
   bool scrollHTo(int pos) => sendMessage(WM_HSCROLL, pos, 0) == 0;
 
   /// Scrolls this [RichEdit] to top.
-  /// - Calls [scrollVTo] [SB_TOP].
+  /// - Calls [scrollVTo] [SCROLLBAR_COMMAND.SB_TOP].
   bool scrollToTop() {
     logInfo('scrollToTop');
-    return scrollVTo(SB_TOP);
+    return scrollVTo(SCROLLBAR_COMMAND.SB_TOP);
   }
 
   /// Scrolls horizontally this [RichEdit] to bottom.
-  /// - Calls [scrollVTo] [SB_BOTTOM].
+  /// - Calls [scrollVTo] [SCROLLBAR_COMMAND.SB_BOTTOM].
   bool scrollToBottom() {
     logInfo('scrollToBottom');
-    return scrollVTo(SB_BOTTOM);
+    return scrollVTo(SCROLLBAR_COMMAND.SB_BOTTOM);
   }
 
   /// Gets the `CHARFORMAT` of this [RichEdit].

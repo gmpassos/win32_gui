@@ -18,7 +18,10 @@ class Button extends ChildWindow {
       {super.id,
       super.parent,
       required String label,
-      int windowStyles = WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+      int windowStyles = WINDOW_STYLE.WS_TABSTOP |
+          WINDOW_STYLE.WS_VISIBLE |
+          WINDOW_STYLE.WS_CHILD |
+          BS_DEFPUSHBUTTON,
       int x = CW_USEDEFAULT,
       int y = CW_USEDEFAULT,
       int width = CW_USEDEFAULT,

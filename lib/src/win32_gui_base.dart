@@ -5,7 +5,6 @@ import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:ffi/ffi.dart';
 import 'package:logging/logging.dart' as logging;
-import 'package:resource_portable/resource.dart';
 import 'package:win32/win32.dart';
 
 import 'win32_constants.dart';
@@ -15,7 +14,7 @@ final _logWindow = logging.Logger('Win32:Window');
 
 final hInstance = GetModuleHandle(nullptr);
 
-/// A [WindowProc] function.
+/// A [WNDPROC] function.
 /// - It's passed to a [RegisterClass] call.
 typedef WindowProcFunction = int Function(
     int hwnd, int uMsg, int wParam, int lParam);
@@ -40,7 +39,7 @@ class WindowClassColors {
 
     var bgColor = this.bgColor;
     if (bgColor != null) {
-      SetBkMode(hdc, OPAQUE);
+      SetBkMode(hdc, BACKGROUND_MODE.OPAQUE);
       SetBkColor(hdc, bgColor);
     }
 
@@ -58,9 +57,9 @@ class WindowClass {
   /// The class name of this [Window] Class.
   final String className;
 
-  /// The pointer to the [WindowProc].
+  /// The pointer to the [WNDPROC].
   /// See [WindowClass.windowProcDefault].
-  final Pointer<NativeFunction<WindowProc>> windowProc;
+  final Pointer<NativeFunction<WNDPROC>> windowProc;
 
   /// Return `true` if this is a frame window, `false` if it's a child component.
   final bool isFrame;
@@ -402,7 +401,9 @@ class WindowClass {
       ..hInstance = hInstance
       ..lpszClassName = windowClass.classNameNative
       ..lpfnWndProc = windowClass.windowProc
-      ..style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC
+      ..style = WNDCLASS_STYLES.CS_HREDRAW |
+          WNDCLASS_STYLES.CS_VREDRAW |
+          WNDCLASS_STYLES.CS_OWNDC
       ..hCursor = LoadCursor(NULL, IDC_ARROW);
 
     if (windowClass.isFrame) {
@@ -684,7 +685,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   /// [Window] build procedure.
   void build(int hwnd, int hdc) {
-    SetMapMode(hdc, MM_ISOTROPIC);
+    SetMapMode(hdc, HDC_MAP_MODE.MM_ISOTROPIC);
     SetViewportExtEx(hdc, 1, 1, nullptr);
     SetWindowExtEx(hdc, 1, 1, nullptr);
   }
@@ -821,47 +822,53 @@ abstract class WindowBase<W extends WindowBase<W>> {
   }
 
   /// Shows this [Window].
-  /// - Calls Win32 [ShowWindow] [SW_SHOWNORMAL].
+  /// - Calls Win32 [ShowWindow] [SHOW_WINDOW_CMD.SW_SHOWNORMAL].
   void show() {
     final hwnd = this.hwnd;
 
-    ShowWindow(hwnd, SW_SHOWNORMAL);
+    ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_SHOWNORMAL);
   }
 
   /// Minimizes this [Window].
-  /// - Calls Win32 [ShowWindow] [SW_MINIMIZE].
+  /// - Calls Win32 [ShowWindow] [SHOW_WINDOW_CMD.SW_MINIMIZE].
   bool minimize() {
     final hwnd = this.hwnd;
 
-    var r = ShowWindow(hwnd, SW_MINIMIZE);
+    var r = ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_MINIMIZE);
     return r != 0;
   }
 
   /// Maximized this [Window].
-  /// - Calls Win32 [ShowWindow] [SW_MAXIMIZE].
+  /// - Calls Win32 [ShowWindow] [SHOW_WINDOW_CMD.SW_MAXIMIZE].
   bool maximize() {
     final hwnd = this.hwnd;
 
-    var r = ShowWindow(hwnd, SW_MAXIMIZE);
+    var r = ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_MAXIMIZE);
     return r == 0;
   }
 
   /// Restores this [Window].
-  /// - Calls Win32 [ShowWindow] [SW_RESTORE].
+  /// - Calls Win32 [ShowWindow] [SHOW_WINDOW_CMD.SW_RESTORE].
   bool restore() {
     final hwnd = this.hwnd;
 
-    var r = ShowWindow(hwnd, SW_RESTORE);
+    var r = ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
     return r == 0;
   }
 
   /// Returns if this [Window] is minimized.
   /// - See [getWindowLongPtr].
-  bool get isMinimized => (getWindowLongPtr(GWL_STYLE) & WS_MINIMIZE) != 0;
+  bool get isMinimized =>
+      (getWindowLongPtr(WINDOW_LONG_PTR_INDEX.GWL_STYLE) &
+          WINDOW_STYLE.WS_MINIMIZE) !=
+      0;
 
   /// Returns if this [Window] is maximized.
   /// - See [getWindowLongPtr].
-  bool get isMaximized => (getWindowLongPtr(GWL_STYLE) & WS_MAXIMIZE) != 0;
+  bool get isMaximized =>
+      (getWindowLongPtr(WINDOW_LONG_PTR_INDEX.GWL_STYLE) &
+          WINDOW_STYLE.WS_MAXIMIZE) !=
+      0;
 
   int getWindowLongPtr(int nIndex) {
     final hwnd = this.hwnd;
@@ -935,9 +942,9 @@ abstract class WindowBase<W extends WindowBase<W>> {
       bool iconInformation = true,
       bool modal = false}) {
     if (iconWarning) {
-      flags |= MB_ICONWARNING;
+      flags |= MESSAGEBOX_STYLE.MB_ICONWARNING;
     } else if (iconInformation) {
-      flags |= MB_ICONINFORMATION;
+      flags |= MESSAGEBOX_STYLE.MB_ICONINFORMATION;
     }
 
     return showDialog(title, text, flags: flags, modal: modal);
@@ -947,18 +954,20 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// - Calls Win32 [MessageBox].
   /// - See [showDialog].
   bool showConfirmationDialog(String title, String text,
-      {int flags = MB_ICONQUESTION,
+      {int flags = MESSAGEBOX_STYLE.MB_ICONQUESTION,
       bool okCancel = false,
       bool yesNo = true,
       bool cancel = false,
       bool modal = false}) {
     if (okCancel) {
-      flags |= MB_OKCANCEL;
+      flags |= MESSAGEBOX_STYLE.MB_OKCANCEL;
     } else if (yesNo) {
-      flags |= cancel ? MB_YESNOCANCEL : MB_YESNO;
+      flags |=
+          cancel ? MESSAGEBOX_STYLE.MB_YESNOCANCEL : MESSAGEBOX_STYLE.MB_YESNO;
     }
 
-    return showDialog(title, text, flags: flags, modal: modal) == IDYES;
+    return showDialog(title, text, flags: flags, modal: modal) ==
+        MESSAGEBOX_RESULT.IDYES;
   }
 
   /// Shows a dialog.
@@ -971,7 +980,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final textPointer = text.toNativeUtf16();
 
     if (modal) {
-      flags |= MB_SYSTEMMODAL;
+      flags |= MESSAGEBOX_STYLE.MB_SYSTEMMODAL;
     }
 
     final result = MessageBox(
@@ -1034,7 +1043,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hMemDC = CreateCompatibleDC(hdc);
 
     SelectObject(hMemDC, hBitmap);
-    BitBlt(hdc, x, y, width, height, hMemDC, 0, 0, SRCCOPY);
+    BitBlt(hdc, x, y, width, height, hMemDC, 0, 0, ROP_CODE.SRCCOPY);
     DeleteObject(hMemDC);
   }
 
@@ -1133,17 +1142,8 @@ class Window extends WindowBase<Window> {
           maxConsecutiveDispatches: maxConsecutiveDispatches,
           condition: condition);
 
-  /// Resolves [path] to [Uri].
-  /// - See [Resource].
-  static Future<Uri> resolveFileUri(String path) => Resource(path).uriResolved;
-
-  /// Resolves [path] to a local file path.
-  /// - See [Resource].
-  static Future<String> resolveFilePath(String path) =>
-      resolveFileUri(path).then((uri) => uri.toFilePath());
-
   /// Returns the system fonts.
-  /// - Calls [SystemParametersInfo] [SPI_GETNONCLIENTMETRICS].
+  /// - Calls [SystemParametersInfo] [SYSTEM_PARAMETERS_INFO_ACTION.SPI_GETNONCLIENTMETRICS].
   static Map<String, String> getSystemDefaultFonts() {
     var ncm = calloc<NONCLIENTMETRICS>();
     var ncmRef = ncm.ref;
@@ -1151,7 +1151,12 @@ class Window extends WindowBase<Window> {
     final ncmSz = sizeOf<NONCLIENTMETRICS>();
     ncmRef.cbSize = ncmSz;
 
-    var ok = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmSz, ncm, 0) != 0;
+    var ok = SystemParametersInfo(
+            SYSTEM_PARAMETERS_INFO_ACTION.SPI_GETNONCLIENTMETRICS,
+            ncmSz,
+            ncm,
+            0) !=
+        0;
 
     if (!ok) {
       var errorCode = GetLastError();
@@ -1379,8 +1384,8 @@ class Window extends WindowBase<Window> {
   /// - See [loadImageCached] and [getBitmapDimension].
   static int loadImage(String imgPath, {int imgWidth = 0, int imgHeight = 0}) {
     var imgPathPtr = imgPath.toNativeUtf16();
-    final hBitmap = LoadImage(
-        NULL, imgPathPtr, IMAGE_BITMAP, imgWidth, imgHeight, LR_LOADFROMFILE);
+    final hBitmap = LoadImage(NULL, imgPathPtr, GDI_IMAGE_TYPE.IMAGE_BITMAP,
+        imgWidth, imgHeight, IMAGE_FLAGS.LR_LOADFROMFILE);
     free(imgPathPtr);
     return hBitmap;
   }
@@ -1412,8 +1417,8 @@ class Window extends WindowBase<Window> {
   /// Loads an icon with dimensions [width] and [height] from [iconPath].
   static int loadIcon(String iconPath, int width, int height) {
     var iconPathPtr = iconPath.toNativeUtf16();
-    var hIcon = LoadImage(
-        NULL, iconPathPtr, IMAGE_ICON, width, height, LR_LOADFROMFILE);
+    var hIcon = LoadImage(NULL, iconPathPtr, GDI_IMAGE_TYPE.IMAGE_ICON, width,
+        height, IMAGE_FLAGS.LR_LOADFROMFILE);
     free(iconPathPtr);
     return hIcon;
   }

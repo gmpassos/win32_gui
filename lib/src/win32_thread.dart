@@ -12,7 +12,7 @@ class Win32Thread {
   ///   be a Dart function, since it can't be called from a thread external to its `Isolate`.
   /// - [threadParam] is an optional parameter to be passed to [threadFunction].
   static ({int threadID, int hThread})? createThread(
-      {required Pointer<NativeFunction<ThreadProc>> threadFunction,
+      {required Pointer<NativeFunction<LPTHREAD_START_ROUTINE>> threadFunction,
       Pointer<NativeType>? threadParam,
       int flags = 0}) {
     final threadIdPtr = calloc<Uint32>();
