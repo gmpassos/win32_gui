@@ -126,7 +126,7 @@ class _MainWindow extends Window {
   // Declare the main window custom class:
   static final mainWindowClass = WindowClass.custom(
     className: 'mainWindow',
-    windowProc: Pointer.fromFunction<WindowProc>(mainWindowProc, 0),
+    windowProc: Pointer.fromFunction<WNDPROC>(mainWindowProc, 0),
     bgColor: RGB(255, 255, 255),
     useDarkMode: true,
     titleColor: RGB(32, 32, 32),
@@ -146,7 +146,7 @@ class _MainWindow extends Window {
           defaultRepaint: false,
           windowName: 'Win32 GUI - Example',
           windowClass: mainWindowClass,
-          windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
+          windowStyles: WINDOW_STYLE.WS_MINIMIZEBOX | WINDOW_STYLE.WS_SYSMENU,
         ) {
     textOutput =
         _TextOutput(parent: this, x: 4, y: 160, width: 626, height: 250);
@@ -179,13 +179,11 @@ class _MainWindow extends Window {
 
   @override
   Future<void> load() async {
-    imageDartLogoPath = await Window.resolveFilePath(
-        'package:win32_gui/resources/dart-logo.bmp');
+    imageDartLogoPath = resolveFilePath(['resources', 'dart-logo.bmp']);
 
     print('-- imageDartLogoPath: $imageDartLogoPath');
 
-    iconDartLogoPath = await Window.resolveFilePath(
-        'package:win32_gui/resources/dart-icon.ico');
+    iconDartLogoPath = resolveFilePath(['resources', 'dart-icon.ico']);
   }
 
   @override
@@ -253,4 +251,11 @@ class _TextOutput extends RichEdit {
           color: RGB(255, 255, 255)),
     ]);
   }
+}
+
+String resolveFilePath(List<String> filePath) {
+  final list = File(Platform.script.path).parent.path.split('/');
+  list.removeAt(0);
+  final dir = list.join(Platform.pathSeparator);
+  return '$dir${Platform.pathSeparator}${filePath.join(Platform.pathSeparator)}';
 }

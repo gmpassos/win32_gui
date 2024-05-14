@@ -24,7 +24,8 @@ void main() {
       expect(nativeFunctionPtr.address, isNot(equals(0)));
 
       var t = Win32Thread.createThread(
-          threadFunction: nativeFunctionPtr.cast<NativeFunction<ThreadProc>>(),
+          threadFunction:
+              nativeFunctionPtr.cast<NativeFunction<LPTHREAD_START_ROUTINE>>(),
           threadParam: nullptr);
 
       expect(t, isNotNull);
@@ -40,8 +41,8 @@ void main() {
     });
 
     test('Dart Function (ERROR)', () async {
-      var invalidFunction =
-          Pointer.fromFunction<ThreadProc>(_invalidThreadFunction, 0);
+      var invalidFunction = Pointer.fromFunction<LPTHREAD_START_ROUTINE>(
+          _invalidThreadFunction, 0);
 
       dynamic r;
       try {
