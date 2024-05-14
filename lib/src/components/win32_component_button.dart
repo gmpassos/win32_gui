@@ -18,25 +18,20 @@ class Button extends ChildWindow {
       {super.id,
       super.parent,
       required String label,
-      int windowStyles = WINDOW_STYLE.WS_TABSTOP |
+      super.windowStyles = WINDOW_STYLE.WS_TABSTOP |
           WINDOW_STYLE.WS_VISIBLE |
           WINDOW_STYLE.WS_CHILD |
           BS_DEFPUSHBUTTON,
-      int x = CW_USEDEFAULT,
-      int y = CW_USEDEFAULT,
-      int width = CW_USEDEFAULT,
-      int height = CW_USEDEFAULT,
+      int super.x = CW_USEDEFAULT,
+      int super.y = CW_USEDEFAULT,
+      int super.width = CW_USEDEFAULT,
+      int super.height = CW_USEDEFAULT,
       super.bgColor,
       super.defaultRepaint = true,
       this.onCommand})
       : super(
           windowClass: buttonWindowClass,
           windowName: label,
-          windowStyles: windowStyles,
-          x: x,
-          y: y,
-          width: width,
-          height: height,
         );
 
   /// Calls [onCommand].

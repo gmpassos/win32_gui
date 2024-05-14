@@ -179,11 +179,13 @@ class _MainWindow extends Window {
 
   @override
   Future<void> load() async {
-    imageDartLogoPath = resolveFilePath(['resources', 'dart-logo.bmp']);
+    imageDartLogoPath = await Window.resolveFilePath(
+        'package:win32_gui/resources/dart-logo.bmp');
 
     print('-- imageDartLogoPath: $imageDartLogoPath');
 
-    iconDartLogoPath = resolveFilePath(['resources', 'dart-icon.ico']);
+    iconDartLogoPath = await Window.resolveFilePath(
+        'package:win32_gui/resources/dart-icon.ico');
   }
 
   @override
@@ -251,11 +253,4 @@ class _TextOutput extends RichEdit {
           color: RGB(255, 255, 255)),
     ]);
   }
-}
-
-String resolveFilePath(List<String> filePath) {
-  final list = File(Platform.script.path).parent.path.split('/');
-  list.removeAt(0);
-  final dir = list.join(Platform.pathSeparator);
-  return '$dir${Platform.pathSeparator}${filePath.join(Platform.pathSeparator)}';
 }
