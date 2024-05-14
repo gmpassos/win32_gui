@@ -49,7 +49,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   static set dialogColors(WindowClassColors? colors) =>
       WindowClass.dialogColors = colors;
 
-  /// The default [Dialog] [DlgProc] implementation.
+  /// The default [Dialog] [DLGPROC] implementation.
   static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
     var result = 0;
 
@@ -218,7 +218,7 @@ class Dialog<R> extends WindowBase<Dialog> {
 
   /// A [Pointer] to [Dialog.dialogProcDefault].
   static final dialogProcDefaultPtr =
-      Pointer.fromFunction<DlgProc>(Dialog.dialogProcDefault, 0);
+      Pointer.fromFunction<DLGPROC>(Dialog.dialogProcDefault, 0);
 
   /// Lookup a [Dialog] by `_createID`;
   static Dialog? getDialogWithCreateId(int createId,
@@ -249,7 +249,7 @@ class Dialog<R> extends WindowBase<Dialog> {
 
   /// The [Dialog] message processor function.
   /// - Defaults to [Dialog.dialogProcDefault].
-  final Pointer<NativeFunction<DlgProc>> dialogFunction;
+  final Pointer<NativeFunction<DLGPROC>> dialogFunction;
 
   /// The owner of this [Dialog].
   final Window? parent;
@@ -268,7 +268,10 @@ class Dialog<R> extends WindowBase<Dialog> {
   final int? titleColor;
 
   Dialog({
-    this.style = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE,
+    this.style = WINDOW_STYLE.WS_POPUP |
+        WINDOW_STYLE.WS_BORDER |
+        WINDOW_STYLE.WS_SYSMENU |
+        WINDOW_STYLE.WS_VISIBLE,
     this.title,
     super.x,
     super.y,
@@ -277,7 +280,7 @@ class Dialog<R> extends WindowBase<Dialog> {
     this.fontName,
     this.fontSize,
     this.items = const [],
-    Pointer<NativeFunction<DlgProc>>? dialogFunction,
+    Pointer<NativeFunction<DLGPROC>>? dialogFunction,
     this.parent,
     this.onCommand,
     this.timeout,
@@ -286,7 +289,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   }) : dialogFunction = dialogFunction ?? dialogProcDefaultPtr {
     final title = this.title;
     if (title != null && title.isNotEmpty) {
-      style |= WS_CAPTION;
+      style |= WINDOW_STYLE.WS_CAPTION;
     }
 
     final fontName = this.fontName;
@@ -385,7 +388,7 @@ class Dialog<R> extends WindowBase<Dialog> {
 
     var idx = 0;
 
-    idx += templatePtr.elementAt(idx).cast<DLGTEMPLATE>().setDialog(
+    idx += (templatePtr + idx).cast<DLGTEMPLATE>().setDialog(
         style: style,
         title: title ?? '',
         cdit: items.length,
@@ -397,7 +400,7 @@ class Dialog<R> extends WindowBase<Dialog> {
         fontSize: fontSize ?? 0);
 
     for (var item in items) {
-      idx += templatePtr.elementAt(idx).cast<DLGITEMTEMPLATE>().setDialogItem(
+      idx += (templatePtr + idx).cast<DLGITEMTEMPLATE>().setDialogItem(
           style: item.style,
           dwExtendedStyle: item.dwExtendedStyle,
           x: item.x,
@@ -595,7 +598,10 @@ class DialogItem {
 
   /// A button item.
   factory DialogItem.button(
-          {int style = WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+          {int style = WINDOW_STYLE.WS_CHILD |
+              WINDOW_STYLE.WS_VISIBLE |
+              WINDOW_STYLE.WS_TABSTOP |
+              BS_DEFPUSHBUTTON,
           required int x,
           required int y,
           required int width,
@@ -614,7 +620,7 @@ class DialogItem {
 
   /// A text item.
   factory DialogItem.text(
-          {int style = WS_CHILD | WS_VISIBLE,
+          {int style = WINDOW_STYLE.WS_CHILD | WINDOW_STYLE.WS_VISIBLE,
           String windowClass = 'static',
           required int x,
           required int y,

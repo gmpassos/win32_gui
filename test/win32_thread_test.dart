@@ -24,7 +24,8 @@ void main() {
       expect(nativeFunctionPtr.address, isNot(equals(0)));
 
       var t = Win32Thread.createThread(
-          threadFunction: nativeFunctionPtr.cast<NativeFunction<ThreadProc>>(),
+          threadFunction:
+              nativeFunctionPtr.cast<NativeFunction<LPTHREAD_START_ROUTINE>>(),
           threadParam: nullptr);
 
       expect(t, isNotNull);
@@ -38,24 +39,5 @@ void main() {
 
       expect(tExited, isTrue);
     });
-
-    test('Dart Function (ERROR)', () async {
-      var invalidFunction =
-          Pointer.fromFunction<ThreadProc>(_invalidThreadFunction, 0);
-
-      dynamic r;
-      try {
-        r = Win32Thread.createThread(
-            threadFunction: invalidFunction,
-            threadParam: 'xyz'.toNativeUtf16());
-      } catch (_) {}
-
-      expect(r, isNull);
-    }, skip: 'Will perform a FATAL error to the VM');
   });
-}
-
-// A Dart function can't be a Win32 Thread function:
-int _invalidThreadFunction(Pointer<Utf16> param) {
-  return 0;
 }

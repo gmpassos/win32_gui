@@ -57,7 +57,7 @@ Future<void> main() async {
   // A Dart timer.
   // Shows that Dart is dispatching calls and Win32 is not blocking them.
   Timer.periodic(Duration(seconds: 1), (timer) {
-    print('TIMER> ${DateTime.now()}');
+    print('TIMER> ${DateTime.now()} ');
   });
 
   // Run the Win32 Window message loop:
@@ -69,7 +69,7 @@ class MainWindow extends Window {
   // Declare the main window custom class:
   static final mainWindowClass = WindowClass.custom(
     className: 'mainWindow',
-    windowProc: Pointer.fromFunction<WindowProc>(mainWindowProc, 0),
+    windowProc: Pointer.fromFunction<WNDPROC>(mainWindowProc, 0),
     bgColor: RGB(255, 255, 255),
     useDarkMode: true,
     titleColor: RGB(32, 32, 32),
@@ -90,7 +90,7 @@ class MainWindow extends Window {
           defaultRepaint: false, // Tells to call the custom `repaint()` below.
           windowName: 'Win32 GUI - Example', // The Window title.
           windowClass: mainWindowClass,
-          windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
+          windowStyles: WINDOW_STYLE.WS_MINIMIZEBOX | WINDOW_STYLE.WS_SYSMENU,
         ) {
     textOutput =
         TextOutput(parent: this, x: 4, y: 160, width: 626, height: 250);
@@ -148,8 +148,8 @@ class MainWindow extends Window {
     destroy();
   }
 
-  late final String imageDartLogoPath;
-  late final String iconDartLogoPath;
+  String imageDartLogoPath = '';
+  String iconDartLogoPath = '';
 
   // Load resources (called by `create()`):
   @override
@@ -247,7 +247,7 @@ class DialogExample extends Dialog<int> {
   DialogExample({required super.parent})
       : super(
             dialogFunction:
-                Pointer.fromFunction<DlgProc>(Dialog.dialogProcDefault, 0),
+                Pointer.fromFunction<DLGPROC>(Dialog.dialogProcDefault, 0),
             title: 'Dialog Example',
             x: 0,
             y: 0,

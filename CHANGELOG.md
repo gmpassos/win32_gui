@@ -1,3 +1,13 @@
+## 1.1.5
+
+- ffi: ^2.1.2
+- win32: ^5.5.0
+- collection: ^1.18.0
+- lints: ^3.0.0
+- test: ^1.25.5
+- dependency_validator: ^3.2.3
+- coverage: ^1.8.0
+
 ## 1.1.4
 
 - `README.md`:

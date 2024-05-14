@@ -59,7 +59,7 @@ class MainWindow extends Window {
   // Declare the main window custom class:
   static final mainWindowClass = WindowClass.custom(
     className: 'mainWindow',
-    windowProc: Pointer.fromFunction<WindowProc>(mainWindowProc, 0),
+    windowProc: Pointer.fromFunction<WNDPROC>(mainWindowProc, 0),
     bgColor: RGB(255, 255, 255),
     useDarkMode: true,
     titleColor: RGB(32, 32, 32),
@@ -75,7 +75,7 @@ class MainWindow extends Window {
     defaultRepaint: false, // Tells that `repaint()` below will be used. 
     windowName: 'Win32 GUI - Example', // The Window title.
     windowClass: mainWindowClass,
-    windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
+    windowStyles: WINDOW_STYLE.WS_MINIMIZEBOX | WINDOW_STYLE.WS_SYSMENU,
   ) ;
 
   late final String imageDartLogoPath;
@@ -86,7 +86,7 @@ class MainWindow extends Window {
   Future<void> load() async {
     imageDartLogoPath = await Window.resolveFilePath(
             'package:win32_gui/resources/dart-logo.bmp');
-    
+
     iconDartLogoPath = await Window.resolveFilePath(
             'package:win32_gui/resources/dart-icon.ico');
   }
@@ -143,7 +143,7 @@ and `Isolate` messages:
 
 ```dart
   final msg = calloc<MSG>();
-  while (GetMessage(msg, NULL, 0, 0) != 0) {
+  while(GetMessage(msg, NULL, 0, 0) != 0) {
     TranslateMessage(msg);
     DispatchMessage(msg);
   }

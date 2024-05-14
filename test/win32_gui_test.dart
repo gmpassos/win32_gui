@@ -126,7 +126,7 @@ class _MainWindow extends Window {
   // Declare the main window custom class:
   static final mainWindowClass = WindowClass.custom(
     className: 'mainWindow',
-    windowProc: Pointer.fromFunction<WindowProc>(mainWindowProc, 0),
+    windowProc: Pointer.fromFunction<WNDPROC>(mainWindowProc, 0),
     bgColor: RGB(255, 255, 255),
     useDarkMode: true,
     titleColor: RGB(32, 32, 32),
@@ -146,7 +146,7 @@ class _MainWindow extends Window {
           defaultRepaint: false,
           windowName: 'Win32 GUI - Example',
           windowClass: mainWindowClass,
-          windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
+          windowStyles: WINDOW_STYLE.WS_MINIMIZEBOX | WINDOW_STYLE.WS_SYSMENU,
         ) {
     textOutput =
         _TextOutput(parent: this, x: 4, y: 160, width: 626, height: 250);
