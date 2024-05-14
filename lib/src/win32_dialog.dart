@@ -49,7 +49,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   static set dialogColors(WindowClassColors? colors) =>
       WindowClass.dialogColors = colors;
 
-  /// The default [Dialog] [DLGPROC ] implementation.
+  /// The default [Dialog] [DLGPROC] implementation.
   static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
     var result = 0;
 
