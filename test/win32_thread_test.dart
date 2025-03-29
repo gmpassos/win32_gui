@@ -1,4 +1,6 @@
 @TestOn('windows')
+library;
+
 import 'package:test/test.dart';
 import 'package:win32_gui/win32_gui.dart';
 import 'package:win32_gui/win32_gui_logging.dart';

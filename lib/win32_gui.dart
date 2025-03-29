@@ -1,5 +1,5 @@
 /// Win32 GUI library.
-library win32_gui;
+library;
 
 export 'dart:ffi';
 
