@@ -2,8 +2,8 @@
 
 - sdk: '>=3.7.0 <4.0.0'
 
-- ffi: ^2.1.3
-- win32: ^5.10.1
+- ffi: ^2.1.4
+- win32: ^5.12.0
 - logging: ^1.3.0
 - resource_portable: ^3.1.2
 - collection: ^1.19.0
