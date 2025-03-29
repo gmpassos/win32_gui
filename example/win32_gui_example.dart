@@ -19,10 +19,7 @@ Future<void> main() async {
   WindowClass.dialogColors = editColors;
 
   // A custom main Window class (declared bellow):
-  var mainWindow = MainWindow(
-    width: 640,
-    height: 480,
-  );
+  var mainWindow = MainWindow(width: 640, height: 480);
 
   // Creates the main Window:
   print('-- mainWindow.create...');
@@ -38,13 +35,17 @@ Future<void> main() async {
     print('-- Main Window isMinimized> ${mainWindow.isMinimized}');
 
     var confirmed = mainWindow.showConfirmationDialog(
-        "Exit Confirmation", "Exit Application?");
+      "Exit Confirmation",
+      "Exit Application?",
+    );
 
     if (confirmed) {
       mainWindow.destroy();
     } else {
       mainWindow.showMessage(
-          'Application Status', 'Application window minimized.');
+        'Application Status',
+        'Application window minimized.',
+      );
     }
   });
 
@@ -78,7 +79,12 @@ class MainWindow extends Window {
   // Redirect to default implementation [WindowClass.windowProcDefault].
   static int mainWindowProc(int hwnd, int uMsg, int wParam, int lParam) =>
       WindowClass.windowProcDefault(
-          hwnd, uMsg, wParam, lParam, mainWindowClass);
+        hwnd,
+        uMsg,
+        wParam,
+        lParam,
+        mainWindowClass,
+      );
 
   // Child elements:
   late final TextOutput textOutput;
@@ -86,33 +92,40 @@ class MainWindow extends Window {
   late final Button buttonExit;
 
   MainWindow({super.width, super.height})
-      : super(
-          defaultRepaint: false, // Tells to call the custom `repaint()` below.
-          windowName: 'Win32 GUI - Example', // The Window title.
-          windowClass: mainWindowClass,
-          windowStyles: WINDOW_STYLE.WS_MINIMIZEBOX | WINDOW_STYLE.WS_SYSMENU,
-        ) {
-    textOutput =
-        TextOutput(parent: this, x: 4, y: 160, width: 626, height: 250);
+    : super(
+        defaultRepaint: false, // Tells to call the custom `repaint()` below.
+        windowName: 'Win32 GUI - Example', // The Window title.
+        windowClass: mainWindowClass,
+        windowStyles: WS_MINIMIZEBOX | WS_SYSMENU,
+      ) {
+    textOutput = TextOutput(
+      parent: this,
+      x: 4,
+      y: 160,
+      width: 626,
+      height: 250,
+    );
 
     buttonOK = Button(
-        label: 'OK',
-        parent: this,
-        x: 4,
-        y: 414,
-        width: 100,
-        height: 32,
-        onCommand: _onButtonOK);
+      label: 'OK',
+      parent: this,
+      x: 4,
+      y: 414,
+      width: 100,
+      height: 32,
+      onCommand: _onButtonOK,
+    );
 
     // The exit button (`destroy` this Window).
     buttonExit = Button(
-        label: 'Exit',
-        parent: this,
-        x: 106,
-        y: 414,
-        width: 100,
-        height: 32,
-        onCommand: _onButtonExit);
+      label: 'Exit',
+      parent: this,
+      x: 106,
+      y: 414,
+      width: 100,
+      height: 32,
+      onCommand: _onButtonExit,
+    );
   }
 
   void _onButtonOK(int w, int l) async {
@@ -129,10 +142,7 @@ class MainWindow extends Window {
 
     dialog.onDestroyed.listen((_) {
       if (!dialog.timeoutTriggered) {
-        showMessage(
-          'Dialog Result',
-          'Dialog Closed> result: ${dialog.result}',
-        );
+        showMessage('Dialog Result', 'Dialog Closed> result: ${dialog.result}');
       }
     });
 
@@ -155,12 +165,14 @@ class MainWindow extends Window {
   @override
   Future<void> load() async {
     imageDartLogoPath = await Window.resolveFilePath(
-        'package:win32_gui/resources/dart-logo.bmp');
+      'package:win32_gui/resources/dart-logo.bmp',
+    );
 
     print('-- imageDartLogoPath: $imageDartLogoPath');
 
     iconDartLogoPath = await Window.resolveFilePath(
-        'package:win32_gui/resources/dart-icon.ico');
+      'package:win32_gui/resources/dart-icon.ico',
+    );
 
     print('-- iconDartLogoPath: $iconDartLogoPath');
   }
@@ -208,7 +220,7 @@ class MainWindow extends Window {
 // A custom `RichEdit`:
 class TextOutput extends RichEdit {
   TextOutput({super.parent, super.x, super.y, super.width, super.height})
-      : super(bgColor: RGB(32, 32, 32)) {
+    : super(bgColor: RGB(32, 32, 32)) {
     print('-- `TextOutput` default font: `$defaultFont`');
   }
 
@@ -233,60 +245,68 @@ class TextOutput extends RichEdit {
 
     // Sets the `RichEdit` texts with formatted lines:
     setTextFormatted([
-      TextFormatted(" -------------------------\r\n",
-          color: RGB(255, 255, 255)),
+      TextFormatted(
+        " -------------------------\r\n",
+        color: RGB(255, 255, 255),
+      ),
       TextFormatted(" Hello", color: RGB(0, 255, 255), faceName: 'Courier New'),
       TextFormatted(" Word! \r\n", color: RGB(0, 255, 0)),
-      TextFormatted(" -------------------------\r\n",
-          color: RGB(255, 255, 255)),
+      TextFormatted(
+        " -------------------------\r\n",
+        color: RGB(255, 255, 255),
+      ),
     ]);
   }
 }
 
 class DialogExample extends Dialog<int> {
   DialogExample({required super.parent})
-      : super(
-            dialogFunction:
-                Pointer.fromFunction<DLGPROC>(Dialog.dialogProcDefault, 0),
-            title: 'Dialog Example',
-            x: 0,
-            y: 0,
-            width: 4 + 50 + 4 + 50 + 4,
-            height: 56,
-            timeout: Duration(seconds: 10),
-            items: [
-              DialogItem.text(
-                x: 10,
-                y: 10,
-                width: 100,
-                height: 32,
-                id: 0,
-                text: 'Yes or No? (timeout: 10s)',
-              ),
-              DialogItem.button(
-                x: 4,
-                y: 30,
-                width: 50,
-                height: 22,
-                id: 1,
-                text: 'Yes',
-              ),
-              DialogItem.button(
-                x: 4 + 50 + 4,
-                y: 30,
-                width: 50,
-                height: 22,
-                id: 2,
-                text: 'No',
-              ),
-            ]);
+    : super(
+        dialogFunction: Pointer.fromFunction<DLGPROC>(
+          Dialog.dialogProcDefault,
+          0,
+        ),
+        title: 'Dialog Example',
+        x: 0,
+        y: 0,
+        width: 4 + 50 + 4 + 50 + 4,
+        height: 56,
+        timeout: Duration(seconds: 10),
+        items: [
+          DialogItem.text(
+            x: 10,
+            y: 10,
+            width: 100,
+            height: 32,
+            id: 0,
+            text: 'Yes or No? (timeout: 10s)',
+          ),
+          DialogItem.button(
+            x: 4,
+            y: 30,
+            width: 50,
+            height: 22,
+            id: 1,
+            text: 'Yes',
+          ),
+          DialogItem.button(
+            x: 4 + 50 + 4,
+            y: 30,
+            width: 50,
+            height: 22,
+            id: 2,
+            text: 'No',
+          ),
+        ],
+      );
 
   late final String iconDartLogoPath;
 
   @override
   Future<void> load() async {
     iconDartLogoPath = await Window.resolveFilePath(
-        'package:win32_gui/resources/dart-icon.ico');
+      'package:win32_gui/resources/dart-icon.ico',
+    );
 
     print('-- iconDartLogoPath: $iconDartLogoPath');
   }

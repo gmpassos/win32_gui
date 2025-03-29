@@ -26,9 +26,10 @@ void main() {
       expect(nativeFunctionPtr.address, isNot(equals(0)));
 
       var t = Win32Thread.createThread(
-          threadFunction:
-              nativeFunctionPtr.cast<NativeFunction<LPTHREAD_START_ROUTINE>>(),
-          threadParam: nullptr);
+        threadFunction:
+            nativeFunctionPtr.cast<NativeFunction<LPTHREAD_START_ROUTINE>>(),
+        threadParam: nullptr,
+      );
 
       expect(t, isNotNull);
 
@@ -36,8 +37,10 @@ void main() {
       expect(t.threadID, isNot(equals(0)));
 
       // Wait the Thread to exit:
-      var tExited =
-          Win32Thread.waitThread(t.hThread, timeout: Duration(seconds: 1));
+      var tExited = Win32Thread.waitThread(
+        t.hThread,
+        timeout: Duration(seconds: 1),
+      );
 
       expect(tExited, isTrue);
     });

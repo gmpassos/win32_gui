@@ -38,17 +38,13 @@ class RichEdit extends ChildWindow {
   /// See [loadRichEditLibrary].
   static final int richEditLoadedVersion = loadRichEditLibrary();
 
-  static final windowClassEdit = WindowClass.predefined(
-    className: 'edit',
-  );
+  static final windowClassEdit = WindowClass.predefined(className: 'edit');
 
   static final windowClassRich2 = WindowClass.predefined(
     className: 'RichEdit20W',
   );
 
-  static final windowClassRich1 = WindowClass.predefined(
-    className: 'RichEdit',
-  );
+  static final windowClassRich1 = WindowClass.predefined(className: 'RichEdit');
 
   static String? _defaultSystemFont;
 
@@ -76,29 +72,30 @@ class RichEdit extends ChildWindow {
     super.bgColor,
     super.defaultRepaint = false,
     String? defaultFont,
-  })  : defaultFont = defaultFont ?? defaultSystemFont,
-        super(
-          windowClass: switch (richEditLoadedVersion) {
-            2 => windowClassRich2,
-            1 => windowClassRich1,
-            _ => windowClassEdit,
-          },
-          windowStyles: WINDOW_STYLE.WS_CHILD |
-              ES_READONLY |
-              WINDOW_STYLE.WS_VISIBLE |
-              WINDOW_STYLE.WS_HSCROLL |
-              WINDOW_STYLE.WS_VSCROLL |
-              WINDOW_STYLE.WS_BORDER |
-              ES_LEFT |
-              ES_MULTILINE |
-              ES_NOHIDESEL |
-              ES_AUTOHSCROLL |
-              ES_AUTOVSCROLL,
-          x: x,
-          y: y,
-          width: width,
-          height: height,
-        ) {
+  }) : defaultFont = defaultFont ?? defaultSystemFont,
+       super(
+         windowClass: switch (richEditLoadedVersion) {
+           2 => windowClassRich2,
+           1 => windowClassRich1,
+           _ => windowClassEdit,
+         },
+         windowStyles:
+             WS_CHILD |
+             ES_READONLY |
+             WS_VISIBLE |
+             WS_HSCROLL |
+             WS_VSCROLL |
+             WS_BORDER |
+             ES_LEFT |
+             ES_MULTILINE |
+             ES_NOHIDESEL |
+             ES_AUTOHSCROLL |
+             ES_AUTOVSCROLL,
+         x: x,
+         y: y,
+         width: width,
+         height: height,
+       ) {
     _version = richEditLoadedVersion;
     if (_version <= 0) {
       throw StateError("Can't load `RichEdit` library!");
@@ -168,17 +165,17 @@ class RichEdit extends ChildWindow {
   bool scrollHTo(int pos) => sendMessage(WM_HSCROLL, pos, 0) == 0;
 
   /// Scrolls this [RichEdit] to top.
-  /// - Calls [scrollVTo] [SCROLLBAR_COMMAND.SB_TOP].
+  /// - Calls [scrollVTo] [SB_TOP].
   bool scrollToTop() {
     logInfo('scrollToTop');
-    return scrollVTo(SCROLLBAR_COMMAND.SB_TOP);
+    return scrollVTo(SB_TOP);
   }
 
   /// Scrolls horizontally this [RichEdit] to bottom.
-  /// - Calls [scrollVTo] [SCROLLBAR_COMMAND.SB_BOTTOM].
+  /// - Calls [scrollVTo] [SB_BOTTOM].
   bool scrollToBottom() {
     logInfo('scrollToBottom');
-    return scrollVTo(SCROLLBAR_COMMAND.SB_BOTTOM);
+    return scrollVTo(SB_BOTTOM);
   }
 
   /// Gets the `CHARFORMAT` of this [RichEdit].
@@ -206,30 +203,36 @@ class RichEdit extends ChildWindow {
 
   /// Append a text with different colors to this [RichEdit].
   /// - See: [getCharFormat], [setCharFormat], [setCursorToBottom], [replaceSel], [scrollToBottom].
-  void appendText(String text,
-      {int? color,
-      bool bold = false,
-      bool italic = false,
-      bool underline = false,
-      String? faceName,
-      bool scrollToBottom = true}) {
+  void appendText(
+    String text, {
+    int? color,
+    bool bold = false,
+    bool italic = false,
+    bool underline = false,
+    String? faceName,
+    bool scrollToBottom = true,
+  }) {
     _onlyTextFormatted = false;
-    _appendTextImpl(text,
-        color: color,
-        bold: bold,
-        italic: italic,
-        underline: underline,
-        faceName: faceName,
-        scrollToBottom: scrollToBottom);
+    _appendTextImpl(
+      text,
+      color: color,
+      bold: bold,
+      italic: italic,
+      underline: underline,
+      faceName: faceName,
+      scrollToBottom: scrollToBottom,
+    );
   }
 
-  void _appendTextImpl(String text,
-      {int? color,
-      bool bold = false,
-      bool italic = false,
-      bool underline = false,
-      String? faceName,
-      bool scrollToBottom = true}) {
+  void _appendTextImpl(
+    String text, {
+    int? color,
+    bool bold = false,
+    bool italic = false,
+    bool underline = false,
+    String? faceName,
+    bool scrollToBottom = true,
+  }) {
     final cf = getCharFormat();
     final cfRef = cf.ref;
 
@@ -279,25 +282,31 @@ class RichEdit extends ChildWindow {
   List<TextFormatted>? _allTextFormatted;
 
   /// Alias to [appendText] passing [textFormatted] attributes.
-  void appendTextFormatted(TextFormatted textFormatted,
-      {bool scrollToBottom = true}) {
+  void appendTextFormatted(
+    TextFormatted textFormatted, {
+    bool scrollToBottom = true,
+  }) {
     if (_onlyTextFormatted) {
       var allTextFormatted = _allTextFormatted ??= [];
       allTextFormatted.add(textFormatted);
     }
 
-    _appendTextImpl(textFormatted.text,
-        bold: textFormatted.bold,
-        italic: textFormatted.italic,
-        underline: textFormatted.underline,
-        color: textFormatted.color,
-        faceName: textFormatted.faceName,
-        scrollToBottom: scrollToBottom);
+    _appendTextImpl(
+      textFormatted.text,
+      bold: textFormatted.bold,
+      italic: textFormatted.italic,
+      underline: textFormatted.underline,
+      color: textFormatted.color,
+      faceName: textFormatted.faceName,
+      scrollToBottom: scrollToBottom,
+    );
   }
 
   /// Alias to [appendTextFormatted] passing all [textFormatted] elements.
-  int appendAllTextFormatted(Iterable<TextFormatted> textFormatted,
-      {bool scrollToBottom = true}) {
+  int appendAllTextFormatted(
+    Iterable<TextFormatted> textFormatted, {
+    bool scrollToBottom = true,
+  }) {
     var list = textFormatted.toList();
     if (list.isEmpty) return 0;
 
@@ -318,8 +327,11 @@ class RichEdit extends ChildWindow {
   static const _listEquality = ListEquality<TextFormatted>();
 
   /// Sets this [RichEdit] text with [textFormatted] elements.
-  bool setTextFormatted(Iterable<TextFormatted> textFormatted,
-      {bool scrollToBottom = true, bool force = false}) {
+  bool setTextFormatted(
+    Iterable<TextFormatted> textFormatted, {
+    bool scrollToBottom = true,
+    bool force = false,
+  }) {
     var newTextList = textFormatted.toList();
 
     if (newTextList.isEmpty) {
@@ -456,12 +468,14 @@ class TextFormatted {
   final int? color;
   final String? faceName;
 
-  const TextFormatted(this.text,
-      {this.bold = false,
-      this.italic = false,
-      this.underline = false,
-      this.color,
-      this.faceName});
+  const TextFormatted(
+    this.text, {
+    this.bold = false,
+    this.italic = false,
+    this.underline = false,
+    this.color,
+    this.faceName,
+  });
 
   @override
   bool operator ==(Object other) =>

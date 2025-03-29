@@ -40,13 +40,16 @@ void logToConsole({bool enabled = true}) {
 }
 
 /// Logs error [logging] messages to [messageLogger].
-void logErrorTo(
-    {MessageLogger? messageLogger,
-    Object? logDestiny,
-    LoggerHandler? loggerHandler}) {
+void logErrorTo({
+  MessageLogger? messageLogger,
+  Object? logDestiny,
+  LoggerHandler? loggerHandler,
+}) {
   loggerHandler = _resolveLoggerHandler(loggerHandler);
   loggerHandler.logErrorTo(
-      messageLogger: messageLogger, logDestiny: logDestiny);
+    messageLogger: messageLogger,
+    logDestiny: logDestiny,
+  );
 }
 
 extension LoggerExntesion on logging.Logger {
@@ -65,8 +68,8 @@ extension LoggerExntesion on logging.Logger {
 typedef MessageLogger = void Function(logging.Level level, String message);
 
 /// A logging messages block function.
-typedef MessagesBlockLogger = Future<void> Function(
-    logging.Level level, List<String> messages);
+typedef MessagesBlockLogger =
+    Future<void> Function(logging.Level level, List<String> messages);
 
 /// A [logging.Logger] handler.
 class LoggerHandler {
@@ -176,8 +179,9 @@ class LoggerHandler {
 
     var message = msg.message;
 
-    var logMsg =
-        StringBuffer('$time $levelName $debugName $loggerName> $message\n');
+    var logMsg = StringBuffer(
+      '$time $levelName $debugName $loggerName> $message\n',
+    );
 
     if (msg.error != null) {
       logMsg.write('[ERROR] ');
