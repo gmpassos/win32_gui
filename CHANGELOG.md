@@ -1,3 +1,18 @@
+## 1.2.0
+
+- sdk: '>=3.7.0 <4.0.0'
+
+- ffi: ^2.1.4
+- win32: ^5.12.0
+- logging: ^1.3.0
+- resource_portable: ^3.1.2
+- collection: ^1.19.0
+
+- lints: ^5.1.1
+- test: ^1.25.15
+- dependency_validator: ^5.0.2
+- coverage: ^1.11.1
+
 ## 1.1.5
 
 - ffi: ^2.1.2

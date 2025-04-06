@@ -53,8 +53,10 @@ class Dialog<R> extends WindowBase<Dialog> {
   static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
     var result = 0;
 
-    _logDialog.info(() =>
-        'Dialog.dialogProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam');
+    _logDialog.info(
+      () =>
+          'Dialog.dialogProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam',
+    );
 
     Dialog? dialog;
 
@@ -199,15 +201,21 @@ class Dialog<R> extends WindowBase<Dialog> {
   }
 
   /// Lookup a [Dialog] by `createID` pointer;
-  static Dialog? getDialogWithCreateIdPtr(int hwnd, int createIdPtrAddress,
-      {required bool nullHwnd}) {
+  static Dialog? getDialogWithCreateIdPtr(
+    int hwnd,
+    int createIdPtrAddress, {
+    required bool nullHwnd,
+  }) {
     Pointer<Uint32> createIdPtr;
 
     try {
       createIdPtr = Pointer<Uint32>.fromAddress(createIdPtrAddress);
     } catch (e, s) {
       _logDialog.severe(
-          "Error resolving `createId` pointer to hWnd: $hwnd", e, s);
+        "Error resolving `createId` pointer to hWnd: $hwnd",
+        e,
+        s,
+      );
       return null;
     }
 
@@ -217,12 +225,17 @@ class Dialog<R> extends WindowBase<Dialog> {
   }
 
   /// A [Pointer] to [Dialog.dialogProcDefault].
-  static final dialogProcDefaultPtr =
-      Pointer.fromFunction<DLGPROC>(Dialog.dialogProcDefault, 0);
+  static final dialogProcDefaultPtr = Pointer.fromFunction<DLGPROC>(
+    Dialog.dialogProcDefault,
+    0,
+  );
 
   /// Lookup a [Dialog] by `_createID`;
-  static Dialog? getDialogWithCreateId(int createId,
-      {int? hwnd, String? windowName}) {
+  static Dialog? getDialogWithCreateId(
+    int createId, {
+    int? hwnd,
+    String? windowName,
+  }) {
     if (createId > 0 && createId <= _createIdCount) {
       return _dialogs.firstWhereOrNull(
         (w) => w._createId == createId && w._hwnd == hwnd,
@@ -268,10 +281,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   final int? titleColor;
 
   Dialog({
-    this.style = WINDOW_STYLE.WS_POPUP |
-        WINDOW_STYLE.WS_BORDER |
-        WINDOW_STYLE.WS_SYSMENU |
-        WINDOW_STYLE.WS_VISIBLE,
+    this.style = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE,
     this.title,
     super.x,
     super.y,
@@ -289,7 +299,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   }) : dialogFunction = dialogFunction ?? dialogProcDefaultPtr {
     final title = this.title;
     if (title != null && title.isNotEmpty) {
-      style |= WINDOW_STYLE.WS_CAPTION;
+      style |= WS_CAPTION;
     }
 
     final fontName = this.fontName;
@@ -372,10 +382,16 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// Dialog creation implementation.
   /// - Calls Win32 [CreateDialogIndirectParam] by default.
   /// - Allows @[override].
-  int createDialogImpl(Pointer<Uint32> createIdPtr,
-          Pointer<DLGTEMPLATE> dialogTemplatePtr) =>
-      CreateDialogIndirectParam(hInstance, dialogTemplatePtr,
-          parent?.hwndIfCreated ?? NULL, dialogFunction, createIdPtr.address);
+  int createDialogImpl(
+    Pointer<Uint32> createIdPtr,
+    Pointer<DLGTEMPLATE> dialogTemplatePtr,
+  ) => CreateDialogIndirectParam(
+    hInstance,
+    dialogTemplatePtr,
+    parent?.hwndIfCreated ?? NULL,
+    dialogFunction,
+    createIdPtr.address,
+  );
 
   /// Creates the [DLGTEMPLATE] used by [createDialogImpl].
   Pointer<DLGTEMPLATE> createDialogTemplate() {
@@ -389,29 +405,31 @@ class Dialog<R> extends WindowBase<Dialog> {
     var idx = 0;
 
     idx += (templatePtr + idx).cast<DLGTEMPLATE>().setDialog(
-        style: style,
-        title: title ?? '',
-        cdit: items.length,
-        x: x ?? CW_USEDEFAULT,
-        y: y ?? CW_USEDEFAULT,
-        cx: width ?? CW_USEDEFAULT,
-        cy: height ?? CW_USEDEFAULT,
-        fontName: fontName ?? '',
-        fontSize: fontSize ?? 0);
+      style: style,
+      title: title ?? '',
+      cdit: items.length,
+      x: x ?? CW_USEDEFAULT,
+      y: y ?? CW_USEDEFAULT,
+      cx: width ?? CW_USEDEFAULT,
+      cy: height ?? CW_USEDEFAULT,
+      fontName: fontName ?? '',
+      fontSize: fontSize ?? 0,
+    );
 
     for (var item in items) {
       idx += (templatePtr + idx).cast<DLGITEMTEMPLATE>().setDialogItem(
-          style: item.style,
-          dwExtendedStyle: item.dwExtendedStyle,
-          x: item.x,
-          y: item.y,
-          cx: item.width,
-          cy: item.height,
-          id: item.id,
-          windowSystemClass: item.windowSystemClass,
-          windowClass: item.windowClass,
-          text: item.text,
-          creationDataBytes: item.creationDataBytes);
+        style: item.style,
+        dwExtendedStyle: item.dwExtendedStyle,
+        x: item.x,
+        y: item.y,
+        cx: item.width,
+        cy: item.height,
+        id: item.id,
+        windowSystemClass: item.windowSystemClass,
+        windowClass: item.windowClass,
+        text: item.text,
+        creationDataBytes: item.creationDataBytes,
+      );
     }
 
     return templatePtr.cast();
@@ -540,8 +558,10 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// - By default calls [onCommand] if defined, otherwise [setResultDynamic].
   @override
   void processCommand(int hwnd, int hdc, int wParam, int lParam) {
-    _logDialog.info(() =>
-        '[hwnd: $hwnd, hdc: $hdc] processCommand> wParam: $wParam, lParam: $lParam');
+    _logDialog.info(
+      () =>
+          '[hwnd: $hwnd, hdc: $hdc] processCommand> wParam: $wParam, lParam: $lParam',
+    );
 
     final onCommand = this.onCommand;
 
@@ -597,47 +617,44 @@ class DialogItem {
   });
 
   /// A button item.
-  factory DialogItem.button(
-          {int style = WINDOW_STYLE.WS_CHILD |
-              WINDOW_STYLE.WS_VISIBLE |
-              WINDOW_STYLE.WS_TABSTOP |
-              BS_DEFPUSHBUTTON,
-          required int x,
-          required int y,
-          required int width,
-          required int height,
-          required int id,
-          required String text}) =>
-      DialogItem(
-        style: style,
-        x: x,
-        y: y,
-        width: width,
-        height: height,
-        id: id,
-        text: text,
-      );
+  factory DialogItem.button({
+    int style = WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+    required int x,
+    required int y,
+    required int width,
+    required int height,
+    required int id,
+    required String text,
+  }) => DialogItem(
+    style: style,
+    x: x,
+    y: y,
+    width: width,
+    height: height,
+    id: id,
+    text: text,
+  );
 
   /// A text item.
-  factory DialogItem.text(
-          {int style = WINDOW_STYLE.WS_CHILD | WINDOW_STYLE.WS_VISIBLE,
-          String windowClass = 'static',
-          required int x,
-          required int y,
-          required int width,
-          required int height,
-          required int id,
-          required String text}) =>
-      DialogItem(
-        style: style,
-        x: x,
-        y: y,
-        width: width,
-        height: height,
-        id: id,
-        windowClass: windowClass,
-        text: text,
-      );
+  factory DialogItem.text({
+    int style = WS_CHILD | WS_VISIBLE,
+    String windowClass = 'static',
+    required int x,
+    required int y,
+    required int width,
+    required int height,
+    required int id,
+    required String text,
+  }) => DialogItem(
+    style: style,
+    x: x,
+    y: y,
+    width: width,
+    height: height,
+    id: id,
+    windowClass: windowClass,
+    text: text,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -654,8 +671,10 @@ class DialogItem {
           windowSystemClass == other.windowSystemClass &&
           windowClass == other.windowClass &&
           text == other.text &&
-          ListEquality<int>()
-              .equals(creationDataBytes, other.creationDataBytes);
+          ListEquality<int>().equals(
+            creationDataBytes,
+            other.creationDataBytes,
+          );
 
   @override
   int get hashCode =>
