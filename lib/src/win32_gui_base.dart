@@ -12,12 +12,14 @@ import 'win32_constants.dart';
 
 final _logWindow = logging.Logger('Win32:Window');
 
-final hInstance = GetModuleHandle(nullptr);
+final hInstance = HINSTANCE(GetModuleHandle(null).value);
 
 /// A [WNDPROC] function.
 /// - It's passed to a [RegisterClass] call.
+/// - Uses the native callback signature (required by [Pointer.fromFunction]):
+///   wrap [hwnd] with [HWND] to use it.
 typedef WindowProcFunction =
-    int Function(int hwnd, int uMsg, int wParam, int lParam);
+    int Function(Pointer hwnd, int uMsg, int wParam, int lParam);
 
 /// Defines the colors of a [Window].
 class WindowClassColors {
@@ -31,19 +33,21 @@ class WindowClassColors {
 
   /// Creates a solid brush from this [WindowClassColors].
   /// - Calls Win32 [CreateSolidBrush]
-  int createSolidBrush(int hdc) {
+  HBRUSH createSolidBrush(HDC hdc) {
     var textColor = this.textColor;
     if (textColor != null) {
-      SetTextColor(hdc, textColor);
+      SetTextColor(hdc, COLORREF(textColor));
     }
 
     var bgColor = this.bgColor;
     if (bgColor != null) {
       SetBkMode(hdc, OPAQUE);
-      SetBkColor(hdc, bgColor);
+      SetBkColor(hdc, COLORREF(bgColor));
     }
 
-    return CreateSolidBrush(bgColor ?? textColor ?? RGB(255, 255, 255));
+    return CreateSolidBrush(
+      COLORREF(bgColor ?? textColor ?? RGB(255, 255, 255)),
+    );
   }
 
   @override
@@ -110,10 +114,9 @@ class WindowClass {
     );
   }
 
-  Pointer<Utf16>? _classNameNative;
+  PCWSTR? _classNameNative;
 
-  Pointer<Utf16> get classNameNative =>
-      _classNameNative ??= className.toNativeUtf16();
+  PCWSTR get classNameNative => _classNameNative ??= className.toPcwstr();
 
   /// Defines the colors for `WM_CTLCOLORSTATIC` message.
   static WindowClassColors? staticColors;
@@ -133,14 +136,25 @@ class WindowClass {
   /// Defines the colors for `WM_CTLCOLORDLG` message.
   static WindowClassColors? dialogColors;
 
+  /// Handles a `WM_CTLCOLOR*` message: [wParam] is the control [HDC].
+  /// - Returns the [HBRUSH] address created by [WindowClassColors.createSolidBrush],
+  ///   or `0` if [colors] is `null`.
+  static int createCtlColorBrush(WindowClassColors? colors, int wParam) =>
+      colors?.createSolidBrush(HDC(Pointer.fromAddress(wParam))).address ?? 0;
+
   /// A default implementation of a [windowProc] function associated with a [windowClass].
+  /// - Takes the native [WNDPROC] parameters (see [WindowProcFunction]).
   static int windowProcDefault(
-    int hwnd,
+    Pointer hwndPtr,
     int uMsg,
-    int wParam,
-    int lParam,
+    int wParamInt,
+    int lParamInt,
     WindowClass windowClass,
   ) {
+    final hwnd = HWND(hwndPtr);
+    final wParam = WPARAM(wParamInt);
+    final lParam = LPARAM(lParamInt);
+
     var result = 0;
 
     // var name = Win32Constants.wmByID[uMsg];
@@ -223,27 +237,27 @@ class WindowClass {
         }
       case WM_CTLCOLORSTATIC:
         {
-          result = staticColors?.createSolidBrush(wParam) ?? 0;
+          result = createCtlColorBrush(staticColors, wParam);
         }
       case WM_CTLCOLORBTN:
         {
-          result = buttonColors?.createSolidBrush(wParam) ?? 0;
+          result = createCtlColorBrush(buttonColors, wParam);
         }
       case WM_CTLCOLORLISTBOX:
         {
-          result = listBoxColors?.createSolidBrush(wParam) ?? 0;
+          result = createCtlColorBrush(listBoxColors, wParam);
         }
       case WM_CTLCOLOREDIT:
         {
-          result = editColors?.createSolidBrush(wParam) ?? 0;
+          result = createCtlColorBrush(editColors, wParam);
         }
       case WM_CTLCOLORSCROLLBAR:
         {
-          result = scrollBarColors?.createSolidBrush(wParam) ?? 0;
+          result = createCtlColorBrush(scrollBarColors, wParam);
         }
       case WM_CTLCOLORDLG:
         {
-          result = dialogColors?.createSolidBrush(wParam) ?? 0;
+          result = createCtlColorBrush(dialogColors, wParam);
         }
 
       case WM_CLOSE:
@@ -302,7 +316,7 @@ class WindowClass {
 
   /// Lookup a [Window] by `createID` in [CREATESTRUCT] pointer;
   Window? getWindowWithCreateIdPtr(
-    int hwnd,
+    HWND hwnd,
     int createIdPtrAddress, {
     required bool nullHwnd,
     required bool ptrIsCreateStruct,
@@ -351,7 +365,11 @@ class WindowClass {
   }
 
   /// Lookup a [Window] by `_createID`;
-  Window? getWindowWithCreateId(int createId, {int? hwnd, String? windowName}) {
+  Window? getWindowWithCreateId(
+    int createId, {
+    HWND? hwnd,
+    String? windowName,
+  }) {
     if (createId > 0 && createId <= Window._createIdCount) {
       return _windows.firstWhereOrNull(
         (w) =>
@@ -377,7 +395,7 @@ class WindowClass {
   /// Returns a [Window] with [hwnd] that was registered with this [WindowClass].
   /// - See [windows].
   /// - If [global] is `true` also looks at [allWindows].
-  Window? getWindowWithHWnd(int hwnd, {bool global = false}) {
+  Window? getWindowWithHWnd(HWND hwnd, {bool global = false}) {
     var w = _windows.firstWhereOrNull((w) => w._hwnd == hwnd);
     if (w == null && global) {
       w = _allWindows.firstWhereOrNull((w) => w._hwnd == hwnd);
@@ -424,21 +442,24 @@ class WindowClass {
 
     wcRef
       ..hInstance = hInstance
-      ..lpszClassName = windowClass.classNameNative
+      ..lpszClassName = PWSTR(windowClass.classNameNative)
       ..lpfnWndProc = windowClass.windowProc
       ..style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC
-      ..hCursor = LoadCursor(NULL, IDC_ARROW);
+      ..hCursor = LoadCursor(null, IDC_ARROW).value;
 
     if (windowClass.isFrame) {
-      wcRef.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+      wcRef.hIcon = LoadIcon(null, IDI_APPLICATION).value;
     }
 
     final bgColor = windowClass.bgColor;
     if (bgColor != null) {
-      wcRef.hbrBackground = CreateSolidBrush(bgColor);
+      wcRef.hbrBackground = CreateSolidBrush(COLORREF(bgColor));
     }
 
-    var id = RegisterClass(wc);
+    var id = RegisterClass(wc).value;
+
+    // `RegisterClass` copies the `WNDCLASS`:
+    free(wc);
 
     _registeredWindowClasses[windowClass.className] = id;
 
@@ -464,7 +485,7 @@ class WindowMessageLoop {
 
     final msg = calloc<MSG>();
 
-    while (condition() && GetMessage(msg, NULL, 0, 0) != 0) {
+    while (condition() && GetMessage(msg, null, 0, 0).value) {
       TranslateMessage(msg);
       DispatchMessage(msg);
     }
@@ -499,13 +520,13 @@ class WindowMessageLoop {
     var msgCount = 0;
 
     while (condition()) {
-      var got = PeekMessage(msg, NULL, 0, 0, 1);
+      var got = PeekMessage(msg, null, 0, 0, PM_REMOVE);
 
-      if (got == 0) {
-        got = PeekMessage(msg, NULL, 0, 0, 1);
+      if (!got) {
+        got = PeekMessage(msg, null, 0, 0, PM_REMOVE);
       }
 
-      if (got != 0) {
+      if (got) {
         totalMsgCount++;
         noMsgCount = 0;
         ++msgCount;
@@ -552,13 +573,13 @@ class WindowMessageLoop {
     var noMessageCount = 0;
 
     while (totalMsgCount < maxMessages) {
-      var got = PeekMessage(msg, NULL, 0, 0, 1);
+      var got = PeekMessage(msg, null, 0, 0, PM_REMOVE);
 
-      if (got == 0) {
-        got = PeekMessage(msg, NULL, 0, 0, 1);
+      if (!got) {
+        got = PeekMessage(msg, null, 0, 0, PM_REMOVE);
       }
 
-      if (got != 0) {
+      if (got) {
         totalMsgCount++;
 
         TranslateMessage(msg);
@@ -609,7 +630,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
   bool get created => hwndIfCreated != null;
 
   /// The window handler ID (if [created]).
-  int get hwnd {
+  HWND get hwnd {
     final hwnd = hwndIfCreated;
     if (hwnd == null) {
       throw StateError(
@@ -620,7 +641,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
   }
 
   /// Returns the window handler ID if [created] or `null`.
-  int? get hwndIfCreated;
+  HWND? get hwndIfCreated;
 
   WindowBase({this.x, this.y, this.width, this.height});
 
@@ -632,7 +653,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   /// Creates the [Window] or [Dialog].
   /// - Should call: `await` [ensureLoaded].
-  Future<int> create();
+  Future<HWND> create();
 
   Future<void>? _loadCall;
 
@@ -651,16 +672,21 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// Setup a dark mode.
   /// - Calls Win32 [DwmSetWindowAttribute] [DWMWA_USE_IMMERSIVE_DARK_MODE].
   void setupDarkMode() {
-    var value = malloc<BOOL>()..value = 1;
+    // Win32 `BOOL` (32-bit):
+    var value = malloc<Int32>()..value = TRUE;
 
-    DwmSetWindowAttribute(
-      hwnd,
-      DWMWA_USE_IMMERSIVE_DARK_MODE,
-      value,
-      sizeOf<BOOL>(),
-    );
-
-    free(value);
+    try {
+      DwmSetWindowAttribute(
+        hwnd,
+        DWMWA_USE_IMMERSIVE_DARK_MODE,
+        value,
+        sizeOf<Int32>(),
+      );
+    } on WindowsException catch (e) {
+      _logWindow.warning("Can't setup dark mode: $e");
+    } finally {
+      free(value);
+    }
   }
 
   /// Setup the title color.
@@ -668,16 +694,21 @@ abstract class WindowBase<W extends WindowBase<W>> {
   void setupTitleColor(int? titleColor) {
     if (titleColor == null) return;
 
-    var value = malloc<COLORREF>()..value = titleColor;
+    // Win32 `COLORREF` (32-bit):
+    var value = malloc<Uint32>()..value = titleColor;
 
-    DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, value, sizeOf<COLORREF>());
-
-    free(value);
+    try {
+      DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, value, sizeOf<Uint32>());
+    } on WindowsException catch (e) {
+      _logWindow.warning("Can't setup title color: $e");
+    } finally {
+      free(value);
+    }
   }
 
   /// Calls [build] resolving necessary parameters.
   /// - Used by [WindowClass.windowProcDefault] or [Dialog.dialogProcDefault].
-  bool callBuild({int? hdc}) {
+  bool callBuild({HDC? hdc}) {
     ensureLoaded();
     final hwnd = this.hwnd;
 
@@ -694,13 +725,13 @@ abstract class WindowBase<W extends WindowBase<W>> {
     return true;
   }
 
-  void _callBuildImpl(int hwnd, int hdc) {
+  void _callBuildImpl(HWND hwnd, HDC hdc) {
     fetchDimension();
     build(hwnd, hdc);
   }
 
   /// [Window] build procedure.
-  void build(int hwnd, int hdc) {
+  void build(HWND hwnd, HDC hdc) {
     SetMapMode(hdc, MM_ISOTROPIC);
     SetViewportExtEx(hdc, 1, 1, nullptr);
     SetWindowExtEx(hdc, 1, 1, nullptr);
@@ -709,7 +740,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// Sends a [message] to this [Window].
   int sendMessage(int message, int wParam, int lParam) {
     final hwnd = this.hwnd;
-    return SendMessage(hwnd, message, wParam, lParam);
+    return SendMessage(hwnd, message, WPARAM(wParam), LPARAM(lParam)).value;
   }
 
   /// This [Window] dimension (with the last fetch value).
@@ -730,7 +761,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   /// Updates this [Window].
   /// - Calls Win32 [UpdateWindow].
-  bool updateWindow() => UpdateWindow(hwnd) == 1;
+  bool updateWindow() => UpdateWindow(hwnd);
 
   final _rect = calloc<RECT>();
 
@@ -755,7 +786,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
   bool redrawWindow({math.Rectangle? rect, Pointer<RECT>? pRect, int? flags}) {
     var r = _resolveRect(rect, pRect);
     flags ??= RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW;
-    return RedrawWindow(hwnd, r ?? nullptr, 0, flags) == 1;
+    return RedrawWindow(hwnd, r, null, REDRAW_WINDOW_FLAGS(flags));
   }
 
   /// Invalidates [Window] region.
@@ -766,7 +797,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     bool eraseBg = true,
   }) {
     var r = _resolveRect(rect, pRect);
-    return InvalidateRect(hwnd, r ?? nullptr, eraseBg ? 1 : 0) != 0;
+    return InvalidateRect(hwnd, r, eraseBg);
   }
 
   /// Request a [WM_PAINT] event of the entire [Window] client area.
@@ -782,10 +813,9 @@ abstract class WindowBase<W extends WindowBase<W>> {
     try {
       final hwnd = this.hwnd;
 
-      pref.value =
-          rounded
-              ? (small ? DWMWCP_ROUNDSMALL : DWMWCP_ROUND)
-              : DWMWCP_DONOTROUND;
+      pref.value = rounded
+          ? (small ? DWMWCP_ROUNDSMALL : DWMWCP_ROUND)
+          : DWMWCP_DONOTROUND;
 
       DwmSetWindowAttribute(
         hwnd,
@@ -793,13 +823,16 @@ abstract class WindowBase<W extends WindowBase<W>> {
         pref,
         sizeOf<DWORD>(),
       );
+    } on WindowsException catch (e) {
+      // Not supported before Windows 11:
+      _logWindow.warning("Can't set window rounded corners: $e");
     } finally {
       free(pref);
     }
   }
 
-  int? _iconSmall;
-  int? _iconBig;
+  HICON? _iconSmall;
+  HICON? _iconBig;
 
   /// Sets this [Window] icon from [iconPath].
   ///
@@ -818,24 +851,24 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
     if (small) {
       var hIcon = loader(iconPath, 16, 16);
-      if (hIcon == 0) {
+      if (hIcon.isNull) {
         hIcon = loader(iconPath, 32, 32);
       }
 
       if (force || _iconSmall != hIcon) {
-        sendMessage(WM_SETICON, ICON_SMALL2, hIcon);
+        sendMessage(WM_SETICON, ICON_SMALL2, hIcon.address);
         _iconSmall = hIcon;
       }
     }
 
     if (big) {
       var hIcon = loader(iconPath, 48, 48);
-      if (hIcon == 0) {
+      if (hIcon.isNull) {
         hIcon = loader(iconPath, 32, 32);
       }
 
       if (force || _iconBig != hIcon) {
-        sendMessage(WM_SETICON, ICON_BIG, hIcon);
+        sendMessage(WM_SETICON, ICON_BIG, hIcon.address);
         _iconBig = hIcon;
       }
     }
@@ -854,8 +887,8 @@ abstract class WindowBase<W extends WindowBase<W>> {
   bool minimize() {
     final hwnd = this.hwnd;
 
-    var r = ShowWindow(hwnd, SW_MINIMIZE);
-    return r != 0;
+    // Returns `true` if the window was previously visible.
+    return ShowWindow(hwnd, SW_MINIMIZE);
   }
 
   /// Maximized this [Window].
@@ -864,7 +897,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hwnd = this.hwnd;
 
     var r = ShowWindow(hwnd, SW_MAXIMIZE);
-    return r == 0;
+    return !r;
   }
 
   /// Restores this [Window].
@@ -873,7 +906,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final hwnd = this.hwnd;
 
     var r = ShowWindow(hwnd, SW_RESTORE);
-    return r == 0;
+    return !r;
   }
 
   /// Returns if this [Window] is minimized.
@@ -886,7 +919,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   int getWindowLongPtr(int nIndex) {
     final hwnd = this.hwnd;
-    return GetWindowLongPtr(hwnd, nIndex);
+    return GetWindowLongPtr(hwnd, WINDOW_LONG_PTR_INDEX(nIndex)).value;
   }
 
   /// Closes this [Window].
@@ -903,15 +936,14 @@ abstract class WindowBase<W extends WindowBase<W>> {
     if (shouldClose == null) {
       var r = CloseWindow(hwnd);
       // retry:
-      if (r == 0) {
+      if (!r.value) {
         WindowMessageLoop.consumeQueue();
         r = CloseWindow(hwnd);
       }
 
-      if (r == 0) {
-        final errorCode = GetLastError();
+      if (!r.value) {
         _logWindow.warning(
-          "Error closing `Window`> errorCode: $errorCode ; hwnd: $hwnd -> $this",
+          "Error closing `Window`> errorCode: ${r.error} ; hwnd: $hwnd -> $this",
         );
         return false;
       }
@@ -933,15 +965,14 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
     var r = DestroyWindow(hwnd);
     // retry:
-    if (r == 0) {
+    if (!r.value) {
       WindowMessageLoop.consumeQueue();
       r = DestroyWindow(hwnd);
     }
 
-    if (r == 0) {
-      final errorCode = GetLastError();
+    if (!r.value) {
       _logWindow.warning(
-        "Error destroying `Window`> errorCode: $errorCode ; hwnd: $hwnd -> $this",
+        "Error destroying `Window`> errorCode: ${r.error} ; hwnd: $hwnd -> $this",
       );
       return false;
     }
@@ -1000,14 +1031,19 @@ abstract class WindowBase<W extends WindowBase<W>> {
   }) {
     final hwnd = this.hwnd;
 
-    final titlePointer = title.toNativeUtf16();
-    final textPointer = text.toNativeUtf16();
+    final titlePointer = title.toPcwstr();
+    final textPointer = text.toPcwstr();
 
     if (modal) {
       flags |= MB_SYSTEMMODAL;
     }
 
-    final result = MessageBox(hwnd, textPointer, titlePointer, flags);
+    final result = MessageBox(
+      hwnd,
+      textPointer,
+      titlePointer,
+      MESSAGEBOX_STYLE(flags),
+    ).value;
 
     free(titlePointer);
     free(textPointer);
@@ -1017,7 +1053,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   /// Paint operation: fills a rectangle with [color].
   void fillRect(
-    int hdc,
+    HDC hdc,
     int color, {
     math.Rectangle? rect,
     Pointer<RECT>? pRect,
@@ -1025,16 +1061,16 @@ abstract class WindowBase<W extends WindowBase<W>> {
     var r = _resolveRect(rect, pRect);
 
     if (r != null) {
-      final hBrush = CreateSolidBrush(color);
+      final hBrush = CreateSolidBrush(COLORREF(color));
       FillRect(hdc, r, hBrush);
-      DeleteObject(hBrush);
+      DeleteObject(HGDIOBJ(hBrush));
     }
   }
 
   /// Returns this [Window] text length.
   /// - Calls Win32 [GetWindowTextLength].
   /// - See [getWindowText].
-  int getWindowTextLength() => GetWindowTextLength(hwnd);
+  int getWindowTextLength() => GetWindowTextLength(hwnd).value;
 
   /// Returns this [Window] text.
   /// - Calls Win32 [getWindowTextLength] and [GetWindowText].
@@ -1044,34 +1080,46 @@ abstract class WindowBase<W extends WindowBase<W>> {
     final strPtr = wsalloc(length + 1);
     GetWindowText(hwnd, strPtr, length + 1);
     final str = strPtr.toDartString();
+    free(strPtr);
     return str;
   }
 
   /// Sets this [Window] text.
   /// - Calls Win32 [SetWindowText].
   /// - See [getWindowText].
-  bool setWindowText(String text) =>
-      SetWindowText(hwnd, text.toNativeUtf16()) != 0;
+  bool setWindowText(String text) {
+    final textPtr = text.toPcwstr();
+    final ok = SetWindowText(hwnd, textPtr).value;
+    free(textPtr);
+    return ok;
+  }
 
   /// Paint operation: draws [text] at coordinates [x], [y].
-  void drawText(int hdc, String text, int x, int y) {
-    final s = text.toNativeUtf16();
+  void drawText(HDC hdc, String text, int x, int y) {
+    final s = text.toPcwstr();
     TextOut(hdc, x, y, s, text.length);
     free(s);
   }
 
   /// Paint operation: draws [hBitmap] at coordinates [x], [y].
   /// - Calls Win32 [BitBlt] to copy the Bitmap bytes to this [Window].
-  void drawImage(int hdc, int hBitmap, int x, int y, int width, int height) {
+  void drawImage(
+    HDC hdc,
+    HBITMAP hBitmap,
+    int x,
+    int y,
+    int width,
+    int height,
+  ) {
     final hMemDC = CreateCompatibleDC(hdc);
 
-    SelectObject(hMemDC, hBitmap);
+    SelectObject(hMemDC, HGDIOBJ(hBitmap));
     BitBlt(hdc, x, y, width, height, hMemDC, 0, 0, SRCCOPY);
-    DeleteObject(hMemDC);
+    DeleteDC(hMemDC);
   }
 
   /// Processes a [WM_COMMAND] message.
-  void processCommand(int hwnd, int hdc, int wParam, int lParam) {}
+  void processCommand(HWND hwnd, HDC hdc, int wParam, int lParam) {}
 
   /// Processes a [WM_CLOSE] message or a [close] call.
   /// - If returns `null` (not processed), will delegate to the default behavior of [DefWindowProc] (call [DestroyWindow]).
@@ -1085,7 +1133,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// Processes a message.
   /// - Called by [WindowClass.windowProcDefault] when the messages doesn't have a default processor.
   /// - Should return a value if this messages was processed, or `null` to send to [DefWindowProc].
-  int? processMessage(int hwnd, int uMsg, int wParam, int lParam) => null;
+  int? processMessage(HWND hwnd, int uMsg, int wParam, int lParam) => null;
 
   final StreamController<W> _onClose = StreamController();
 
@@ -1184,12 +1232,17 @@ class Window extends WindowBase<Window> {
     final ncmSz = sizeOf<NONCLIENTMETRICS>();
     ncmRef.cbSize = ncmSz;
 
-    var ok = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmSz, ncm, 0) != 0;
+    var r = SystemParametersInfo(
+      SPI_GETNONCLIENTMETRICS,
+      ncmSz,
+      ncm,
+      SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+    );
 
-    if (!ok) {
-      var errorCode = GetLastError();
+    if (!r.value) {
+      free(ncm);
       throw StateError(
-        "Can't call `SystemParametersInfo(SPI_GETNONCLIENTMETRICS...)`. Error: $errorCode",
+        "Can't call `SystemParametersInfo(SPI_GETNONCLIENTMETRICS...)`. Error: ${r.error}",
       );
     }
 
@@ -1247,10 +1300,14 @@ class Window extends WindowBase<Window> {
     parent?._addChild(this);
   }
 
-  Pointer<Utf16>? _windowNameNative;
+  PCWSTR? _windowNameNative;
 
-  Pointer<Utf16> get windowNameNative =>
-      _windowNameNative ??= windowName?.toNativeUtf16() ?? nullptr;
+  /// The [windowName] as a native string, or `null` if [windowName] is `null`.
+  PCWSTR? get windowNameNative {
+    final windowName = this.windowName;
+    if (windowName == null) return null;
+    return _windowNameNative ??= windowName.toPcwstr();
+  }
 
   static int _createIdCount = 0;
 
@@ -1259,24 +1316,24 @@ class Window extends WindowBase<Window> {
   @override
   int get createId => _createId;
 
-  int? _hwnd;
+  HWND? _hwnd;
 
   @override
-  int? get hwndIfCreated => _hwnd;
+  HWND? get hwndIfCreated => _hwnd;
 
   /// Creates this [Window].
   @override
-  Future<int> create({bool createChildren = true}) async {
+  Future<HWND> create({bool createChildren = true}) async {
     await ensureLoaded();
 
     final createIdPtr = calloc<Uint32>();
     createIdPtr.value = _createId;
 
-    final hwnd = createWindowImpl(createIdPtr);
+    final r = createWindowImpl(createIdPtr);
+    final hwnd = r.value;
 
-    if (hwnd == 0) {
-      var errorCode = GetLastError();
-      throw StateError("Can't create window> errorCode: $errorCode -> $this");
+    if (hwnd.isNull) {
+      throw StateError("Can't create window> errorCode: ${r.error} -> $this");
     }
 
     if (_hwnd != null && _hwnd != hwnd) {
@@ -1301,34 +1358,38 @@ class Window extends WindowBase<Window> {
   /// Window creation implementation.
   /// - Calls Win32 [CreateWindowEx] by default.
   /// - Allows @[override].
-  int createWindowImpl(Pointer<Uint32> createIdPtr) => CreateWindowEx(
-    // Optional window styles:
-    0,
+  Win32Result<HWND> createWindowImpl(Pointer<Uint32> createIdPtr) {
+    final hMenu = this.hMenu;
 
-    // Window class:
-    windowClass.classNameNative,
+    return CreateWindowEx(
+      // Optional window styles:
+      WINDOW_EX_STYLE(0),
 
-    // Window text:
-    windowNameNative,
+      // Window class:
+      windowClass.classNameNative,
 
-    // Window style:
-    windowStyles,
+      // Window text:
+      windowNameNative,
 
-    // Size and position:
-    x ?? CW_USEDEFAULT,
-    y ?? CW_USEDEFAULT,
-    width ?? CW_USEDEFAULT,
-    height ?? CW_USEDEFAULT,
+      // Window style:
+      WINDOW_STYLE(windowStyles),
 
-    // Parent window:
-    parent?._hwnd ?? NULL,
-    // Menu:
-    hMenu ?? NULL,
-    // Instance handle:
-    hInstance,
-    // Pass the `_createId`
-    createIdPtr,
-  );
+      // Size and position:
+      x ?? CW_USEDEFAULT,
+      y ?? CW_USEDEFAULT,
+      width ?? CW_USEDEFAULT,
+      height ?? CW_USEDEFAULT,
+
+      // Parent window:
+      parent?._hwnd,
+      // Menu (or child ID):
+      hMenu != null ? HMENU(Pointer.fromAddress(hMenu)) : null,
+      // Instance handle:
+      hInstance,
+      // Pass the `_createId`
+      createIdPtr,
+    );
+  }
 
   final List<Window> _children = [];
 
@@ -1358,7 +1419,7 @@ class Window extends WindowBase<Window> {
 
   /// Calls [repaint] resolving necessary parameters.
   /// - Used by [WindowClass.windowProcDefault].
-  bool callRepaint({int? hdc}) {
+  bool callRepaint({HDC? hdc}) {
     ensureLoaded();
 
     final hwnd = this.hwnd;
@@ -1380,14 +1441,14 @@ class Window extends WindowBase<Window> {
     return true;
   }
 
-  void _callRepaintImpl(int hwnd, int hdc) {
+  void _callRepaintImpl(HWND hwnd, HDC hdc) {
     fetchDimension();
     repaint(hwnd, hdc);
   }
 
   /// [Window] custom repaint procedure.
   /// - [defaultRepaint] should be `false` to call a custom [repaint].
-  void repaint(int hwnd, int hdc) {}
+  void repaint(HWND hwnd, HDC hdc) {}
 
   /// Sends quit message with [exitCode].
   /// - Calls Win32 [PostQuitMessage].
@@ -1396,7 +1457,7 @@ class Window extends WindowBase<Window> {
   }
 
   /// Paint operation: draws this [Window] background.
-  void drawBG(int hdc, {int? bgColor}) {
+  void drawBG(HDC hdc, {int? bgColor}) {
     bgColor ??= this.bgColor;
 
     if (bgColor != null) {
@@ -1404,44 +1465,47 @@ class Window extends WindowBase<Window> {
     }
   }
 
-  static final Map<String, int> _imagesCached = {};
+  static final Map<String, HBITMAP> _imagesCached = {};
 
   /// Cached version of [loadImage].
   /// -- See [getBitmapDimension].
-  static int loadImageCached(
+  static HBITMAP loadImageCached(
     String imgPath, {
     int imgWidth = 0,
     int imgHeight = 0,
-  }) =>
-      _imagesCached[imgPath] ??= loadImage(
-        imgPath,
-        imgWidth: imgWidth,
-        imgHeight: imgHeight,
-      );
+  }) => _imagesCached[imgPath] ??= loadImage(
+    imgPath,
+    imgWidth: imgWidth,
+    imgHeight: imgHeight,
+  );
 
   /// Loads image from [imgPath] with dimension [imgWidth], [imgHeight].
   /// - The image should be a 24bit Bitmap.
   /// - See [loadImageCached] and [getBitmapDimension].
-  static int loadImage(String imgPath, {int imgWidth = 0, int imgHeight = 0}) {
-    var imgPathPtr = imgPath.toNativeUtf16();
+  static HBITMAP loadImage(
+    String imgPath, {
+    int imgWidth = 0,
+    int imgHeight = 0,
+  }) {
+    var imgPathPtr = imgPath.toPcwstr();
     final hBitmap = LoadImage(
-      NULL,
+      null,
       imgPathPtr,
       IMAGE_BITMAP,
       imgWidth,
       imgHeight,
       LR_LOADFROMFILE,
-    );
+    ).value;
     free(imgPathPtr);
-    return hBitmap;
+    return HBITMAP(hBitmap);
   }
 
   /// Returns the [hBitmap] dimension.
   /// - Calls [GetObject].
-  static ({int width, int height})? getBitmapDimension(int hBitmap) {
+  static ({int width, int height})? getBitmapDimension(HBITMAP hBitmap) {
     var bm = calloc<BITMAP>();
 
-    var ok = GetObject(hBitmap, sizeOf<BITMAP>(), bm) != 0;
+    var ok = GetObject(HGDIOBJ(hBitmap), sizeOf<BITMAP>(), bm) != 0;
     if (!ok) {
       free(bm);
       return null;
@@ -1453,33 +1517,34 @@ class Window extends WindowBase<Window> {
     return dimension;
   }
 
-  static final Map<String, int> _iconsCache = {};
+  static final Map<String, HICON> _iconsCache = {};
 
-  static int loadIconCached(String iconPath, int width, int height) {
+  static HICON loadIconCached(String iconPath, int width, int height) {
     var cacheKey = '$iconPath @> $width;$height';
     return _iconsCache[cacheKey] ??= loadIcon(iconPath, width, height);
   }
 
   /// Loads an icon with dimensions [width] and [height] from [iconPath].
-  static int loadIcon(String iconPath, int width, int height) {
-    var iconPathPtr = iconPath.toNativeUtf16();
+  static HICON loadIcon(String iconPath, int width, int height) {
+    var iconPathPtr = iconPath.toPcwstr();
     var hIcon = LoadImage(
-      NULL,
+      null,
       iconPathPtr,
       IMAGE_ICON,
       width,
       height,
       LR_LOADFROMFILE,
-    );
+    ).value;
     free(iconPathPtr);
-    return hIcon;
+    return HICON(hIcon);
   }
 
   /// Processes a [WM_COMMAND] message. Also calls [processCommand] for [children] [Window]s.
   @override
-  void processCommand(int hwnd, int hdc, int wParam, int lParam) {
+  void processCommand(HWND hwnd, HDC hdc, int wParam, int lParam) {
     for (var child in _children) {
-      if (child._hwnd == lParam) {
+      // For a control notification `lParam` is the control `HWND`:
+      if (child._hwnd?.address == lParam) {
         child.processCommand(hwnd, hdc, wParam, lParam);
       }
     }

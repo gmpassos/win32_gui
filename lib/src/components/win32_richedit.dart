@@ -127,9 +127,9 @@ class RichEdit extends ChildWindow {
 
   /// Sets the text color of this [RichEdit].
   /// - Calls [SetTextColor].
-  int setTextColor(int hdc, int color) {
+  int setTextColor(HDC hdc, int color) {
     logInfo('setTextColor', () => 'hdc: $hdc, color: $color');
-    return SetTextColor(hdc, color);
+    return SetTextColor(hdc, COLORREF(color));
   }
 
   /// Sets the background color of this [RichEdit].
@@ -198,7 +198,13 @@ class RichEdit extends ChildWindow {
   /// - Calls [sendMessage] [EM_REPLACESEL].
   int replaceSel(String text) {
     logInfo('replaceSel', () => 'text: <<$text>>');
-    return sendMessage(EM_REPLACESEL, 0, text.toNativeUtf16().address);
+    final textPtr = text.toPcwstr();
+    try {
+      // `EM_REPLACESEL` copies the text:
+      return sendMessage(EM_REPLACESEL, 0, textPtr.address);
+    } finally {
+      free(textPtr);
+    }
   }
 
   /// Append a text with different colors to this [RichEdit].

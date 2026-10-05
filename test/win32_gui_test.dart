@@ -139,7 +139,7 @@ class _MainWindow extends Window {
   );
 
   // Redirect to default implementation [WindowClass.windowProcDefault].
-  static int mainWindowProc(int hwnd, int uMsg, int wParam, int lParam) =>
+  static int mainWindowProc(Pointer hwnd, int uMsg, int wParam, int lParam) =>
       WindowClass.windowProcDefault(
         hwnd,
         uMsg,
@@ -209,7 +209,7 @@ class _MainWindow extends Window {
   }
 
   @override
-  void build(int hwnd, int hdc) {
+  void build(HWND hwnd, HDC hdc) {
     super.build(hwnd, hdc);
 
     SetTextColor(hdc, RGB(255, 255, 255));
@@ -219,7 +219,7 @@ class _MainWindow extends Window {
   }
 
   @override
-  void repaint(int hwnd, int hdc) {
+  void repaint(HWND hwnd, HDC hdc) {
     var hBitmap = Window.loadImageCached(imageDartLogoPath);
     var imgDimension = Window.getBitmapDimension(hBitmap);
 
@@ -248,7 +248,7 @@ class _TextOutput extends RichEdit {
     : super(bgColor: RGB(32, 32, 32));
 
   @override
-  void build(int hwnd, int hdc) {
+  void build(HWND hwnd, HDC hdc) {
     super.build(hwnd, hdc);
 
     setBkColor(RGB(32, 32, 32));
@@ -258,7 +258,7 @@ class _TextOutput extends RichEdit {
   }
 
   @override
-  void repaint(int hwnd, int hdc) {
+  void repaint(HWND hwnd, HDC hdc) {
     invalidateRect();
 
     setBkColor(RGB(32, 32, 32));

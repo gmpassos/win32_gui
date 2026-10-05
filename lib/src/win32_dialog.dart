@@ -50,7 +50,17 @@ class Dialog<R> extends WindowBase<Dialog> {
       WindowClass.dialogColors = colors;
 
   /// The default [Dialog] [DLGPROC] implementation.
-  static int dialogProcDefault(int hwnd, int uMsg, int wParam, int lParam) {
+  /// - Takes the native [DLGPROC] parameters (required by [Pointer.fromFunction]).
+  static int dialogProcDefault(
+    Pointer hwndPtr,
+    int uMsg,
+    int wParamInt,
+    int lParamInt,
+  ) {
+    final hwnd = HWND(hwndPtr);
+    final wParam = WPARAM(wParamInt);
+    final lParam = LPARAM(lParamInt);
+
     var result = 0;
 
     _logDialog.info(
@@ -139,27 +149,27 @@ class Dialog<R> extends WindowBase<Dialog> {
 
       case WM_CTLCOLORSTATIC:
         {
-          result = staticColors?.createSolidBrush(wParam) ?? 0;
+          result = WindowClass.createCtlColorBrush(staticColors, wParam);
         }
       case WM_CTLCOLORBTN:
         {
-          result = buttonColors?.createSolidBrush(wParam) ?? 0;
+          result = WindowClass.createCtlColorBrush(buttonColors, wParam);
         }
       case WM_CTLCOLORLISTBOX:
         {
-          result = listBoxColors?.createSolidBrush(wParam) ?? 0;
+          result = WindowClass.createCtlColorBrush(listBoxColors, wParam);
         }
       case WM_CTLCOLOREDIT:
         {
-          result = editColors?.createSolidBrush(wParam) ?? 0;
+          result = WindowClass.createCtlColorBrush(editColors, wParam);
         }
       case WM_CTLCOLORSCROLLBAR:
         {
-          result = scrollBarColors?.createSolidBrush(wParam) ?? 0;
+          result = WindowClass.createCtlColorBrush(scrollBarColors, wParam);
         }
       case WM_CTLCOLORDLG:
         {
-          result = dialogColors?.createSolidBrush(wParam) ?? 0;
+          result = WindowClass.createCtlColorBrush(dialogColors, wParam);
         }
 
       default:
@@ -195,14 +205,14 @@ class Dialog<R> extends WindowBase<Dialog> {
 
   /// Returns a [Dialog] with [hwnd].
   /// - See [dialogs].
-  static Dialog? getDialogWithHWnd(int hwnd) {
+  static Dialog? getDialogWithHWnd(HWND hwnd) {
     var d = _dialogs.firstWhereOrNull((w) => w._hwnd == hwnd);
     return d;
   }
 
   /// Lookup a [Dialog] by `createID` pointer;
   static Dialog? getDialogWithCreateIdPtr(
-    int hwnd,
+    HWND hwnd,
     int createIdPtrAddress, {
     required bool nullHwnd,
   }) {
@@ -233,7 +243,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// Lookup a [Dialog] by `_createID`;
   static Dialog? getDialogWithCreateId(
     int createId, {
-    int? hwnd,
+    HWND? hwnd,
     String? windowName,
   }) {
     if (createId > 0 && createId <= _createIdCount) {
@@ -280,8 +290,9 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// The tile color of this [Dialog] frame.
   final int? titleColor;
 
+  /// - [style] defaults to `WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE`.
   Dialog({
-    this.style = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE,
+    int? style,
     this.title,
     super.x,
     super.y,
@@ -296,15 +307,16 @@ class Dialog<R> extends WindowBase<Dialog> {
     this.timeout,
     this.useDarkMode = false,
     this.titleColor,
-  }) : dialogFunction = dialogFunction ?? dialogProcDefaultPtr {
+  }) : style = style ?? (WS_POPUP | WS_BORDER | WS_SYSMENU | WS_VISIBLE),
+       dialogFunction = dialogFunction ?? dialogProcDefaultPtr {
     final title = this.title;
     if (title != null && title.isNotEmpty) {
-      style |= WS_CAPTION;
+      this.style |= WS_CAPTION;
     }
 
     final fontName = this.fontName;
     if (fontName != null && fontName.isNotEmpty) {
-      style |= DS_SETFONT;
+      this.style |= DS_SETFONT;
     }
 
     registerDialog(this);
@@ -353,14 +365,14 @@ class Dialog<R> extends WindowBase<Dialog> {
   @override
   int get createId => _createId;
 
-  int? _hwnd;
+  HWND? _hwnd;
 
   @override
-  int? get hwndIfCreated => _hwnd;
+  HWND? get hwndIfCreated => _hwnd;
 
   /// Creates the [Dialog].
   @override
-  Future<int> create() async {
+  Future<HWND> create() async {
     await ensureLoaded();
 
     final createIdPtr = calloc<Uint32>();
@@ -368,11 +380,11 @@ class Dialog<R> extends WindowBase<Dialog> {
 
     final dialogTemplatePtr = createDialogTemplate();
 
-    final hwnd = createDialogImpl(createIdPtr, dialogTemplatePtr);
+    final r = createDialogImpl(createIdPtr, dialogTemplatePtr);
+    final hwnd = r.value;
 
-    if (hwnd == 0) {
-      var errorCode = GetLastError();
-      throw StateError("Can't create Dialog> errorCode: $errorCode -> $this");
+    if (hwnd.isNull) {
+      throw StateError("Can't create Dialog> errorCode: ${r.error} -> $this");
     }
 
     _hwnd = hwnd;
@@ -382,15 +394,15 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// Dialog creation implementation.
   /// - Calls Win32 [CreateDialogIndirectParam] by default.
   /// - Allows @[override].
-  int createDialogImpl(
+  Win32Result<HWND> createDialogImpl(
     Pointer<Uint32> createIdPtr,
     Pointer<DLGTEMPLATE> dialogTemplatePtr,
   ) => CreateDialogIndirectParam(
     hInstance,
     dialogTemplatePtr,
-    parent?.hwndIfCreated ?? NULL,
+    parent?.hwndIfCreated,
     dialogFunction,
-    createIdPtr.address,
+    LPARAM(createIdPtr.address),
   );
 
   /// Creates the [DLGTEMPLATE] used by [createDialogImpl].
@@ -557,7 +569,7 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// Processes a [Dialog] command, usually a button click.
   /// - By default calls [onCommand] if defined, otherwise [setResultDynamic].
   @override
-  void processCommand(int hwnd, int hdc, int wParam, int lParam) {
+  void processCommand(HWND hwnd, HDC hdc, int wParam, int lParam) {
     _logDialog.info(
       () =>
           '[hwnd: $hwnd, hdc: $hdc] processCommand> wParam: $wParam, lParam: $lParam',
@@ -617,8 +629,9 @@ class DialogItem {
   });
 
   /// A button item.
+  /// - [style] defaults to `WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON`.
   factory DialogItem.button({
-    int style = WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+    int? style,
     required int x,
     required int y,
     required int width,
@@ -626,7 +639,7 @@ class DialogItem {
     required int id,
     required String text,
   }) => DialogItem(
-    style: style,
+    style: style ?? (WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON),
     x: x,
     y: y,
     width: width,
@@ -636,8 +649,9 @@ class DialogItem {
   );
 
   /// A text item.
+  /// - [style] defaults to `WS_CHILD | WS_VISIBLE`.
   factory DialogItem.text({
-    int style = WS_CHILD | WS_VISIBLE,
+    int? style,
     String windowClass = 'static',
     required int x,
     required int y,
@@ -646,7 +660,7 @@ class DialogItem {
     required int id,
     required String text,
   }) => DialogItem(
-    style: style,
+    style: style ?? (WS_CHILD | WS_VISIBLE),
     x: x,
     y: y,
     width: width,

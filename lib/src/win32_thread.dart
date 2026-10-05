@@ -11,29 +11,33 @@ class Win32Thread {
   /// - [threadFunction] is the entrypoint function of the Thread. Note that this can't
   ///   be a Dart function, since it can't be called from a thread external to its `Isolate`.
   /// - [threadParam] is an optional parameter to be passed to [threadFunction].
-  static ({int threadID, int hThread})? createThread({
+  static ({int threadID, HANDLE hThread})? createThread({
     required Pointer<NativeFunction<LPTHREAD_START_ROUTINE>> threadFunction,
     Pointer<NativeType>? threadParam,
     int flags = 0,
   }) {
     final threadIdPtr = calloc<Uint32>();
 
-    var hThread = CreateThread(
-      nullptr,
-      0,
-      threadFunction,
-      threadParam ?? nullptr,
-      flags,
-      threadIdPtr,
-    );
+    try {
+      var hThread = CreateThread(
+        null,
+        0,
+        threadFunction,
+        threadParam,
+        THREAD_CREATION_FLAGS(flags),
+        threadIdPtr,
+      ).value;
 
-    if (hThread == NULL) {
-      return null;
+      if (hThread.isNull) {
+        return null;
+      }
+
+      var threadId = threadIdPtr.value;
+
+      return (threadID: threadId, hThread: hThread);
+    } finally {
+      free(threadIdPtr);
     }
-
-    var threadId = threadIdPtr.value;
-
-    return (threadID: threadId, hThread: hThread);
   }
 
   static const WAIT_OBJECT_0 = 0x00000000;
@@ -46,7 +50,7 @@ class Win32Thread {
   /// - Returns `null` if failed.
   /// - Returns `true` if thread exited.
   /// - Returns `false` on timeout.
-  static bool? waitThread(int hThread, {Duration? timeout}) {
+  static bool? waitThread(HANDLE hThread, {Duration? timeout}) {
     int timeoutMs;
     if (timeout != null) {
       timeoutMs = timeout.inMilliseconds;
@@ -57,7 +61,7 @@ class Win32Thread {
       timeoutMs = INFINITE;
     }
 
-    var r = WaitForSingleObject(hThread, timeoutMs);
+    var r = WaitForSingleObject(hThread, timeoutMs).value;
 
     if (r == WAIT_OBJECT_0) {
       return true;
