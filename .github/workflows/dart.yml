@@ -52,14 +52,34 @@ jobs:
       - name: Generate coverage report
         run: |
           dart pub global activate coverage
-          dart pub global run coverage:format_coverage --packages=.dart_tool/package_config.json --report-on=lib --lcov -o ./coverage/lcov.info -i ./coverage
+          dart pub global run coverage:format_coverage --packages=.dart_tool/package_config.json --report-on=lib --base-directory=. --lcov -o ./coverage/lcov.info -i ./coverage
+      - name: Store coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: ./coverage/lcov.info
+          if-no-files-found: error
+
+  # The Codecov uploader fails the TLS handshake on `windows-latest`
+  # (schannel `SEC_E_ILLEGAL_MESSAGE`), so upload from Linux:
+  coverage:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-lcov
+          path: ./coverage/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
           flags: unittests
-          env_vars: OS,DART
           fail_ci_if_error: true
           verbose: true
 
