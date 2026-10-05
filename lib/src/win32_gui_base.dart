@@ -31,9 +31,8 @@ class WindowClassColors {
 
   WindowClassColors({this.textColor, this.bgColor});
 
-  /// Creates a solid brush from this [WindowClassColors].
-  /// - Calls Win32 [CreateSolidBrush]
-  HBRUSH createSolidBrush(HDC hdc) {
+  /// Applies the [textColor] and [bgColor] to [hdc].
+  void applyColors(HDC hdc) {
     var textColor = this.textColor;
     if (textColor != null) {
       SetTextColor(hdc, COLORREF(textColor));
@@ -44,10 +43,38 @@ class WindowClassColors {
       SetBkMode(hdc, OPAQUE);
       SetBkColor(hdc, COLORREF(bgColor));
     }
+  }
 
-    return CreateSolidBrush(
-      COLORREF(bgColor ?? textColor ?? RGB(255, 255, 255)),
-    );
+  int get _brushColor => bgColor ?? textColor ?? RGB(255, 255, 255);
+
+  /// Creates a solid brush from this [WindowClassColors].
+  /// - Calls Win32 [CreateSolidBrush].
+  /// - The caller owns the returned brush (release it with [DeleteObject]).
+  /// - See [brush] for a cached brush.
+  HBRUSH createSolidBrush(HDC hdc) {
+    applyColors(hdc);
+    return CreateSolidBrush(COLORREF(_brushColor));
+  }
+
+  HBRUSH? _brush;
+
+  /// Applies the colors to [hdc] and returns a cached brush
+  /// (created once per instance).
+  /// - Used to respond `WM_CTLCOLOR*` messages, which are sent on every
+  ///   control repaint: creating a brush per message leaks GDI objects.
+  /// - See [dispose].
+  HBRUSH brush(HDC hdc) {
+    applyColors(hdc);
+    return _brush ??= CreateSolidBrush(COLORREF(_brushColor));
+  }
+
+  /// Releases the cached [brush] (if created).
+  void dispose() {
+    final brush = _brush;
+    if (brush != null) {
+      DeleteObject(HGDIOBJ(brush));
+      _brush = null;
+    }
   }
 
   @override
@@ -137,10 +164,10 @@ class WindowClass {
   static WindowClassColors? dialogColors;
 
   /// Handles a `WM_CTLCOLOR*` message: [wParam] is the control [HDC].
-  /// - Returns the [HBRUSH] address created by [WindowClassColors.createSolidBrush],
+  /// - Returns the cached [WindowClassColors.brush] address,
   ///   or `0` if [colors] is `null`.
   static int createCtlColorBrush(WindowClassColors? colors, int wParam) =>
-      colors?.createSolidBrush(HDC(Pointer.fromAddress(wParam))).address ?? 0;
+      colors?.brush(HDC(Pointer.fromAddress(wParam))).address ?? 0;
 
   /// A default implementation of a [windowProc] function associated with a [windowClass].
   /// - Takes the native [WNDPROC] parameters (see [WindowProcFunction]).
@@ -155,15 +182,45 @@ class WindowClass {
     final wParam = WPARAM(wParamInt);
     final lParam = LPARAM(lParamInt);
 
-    var result = 0;
-
-    // var name = Win32Constants.wmByID[uMsg];
-    // print('winProc[default]> uMsg: $uMsg ; name: $name');
-
     _logWindow.info(
       () =>
           'windowProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam, windowClass: ${windowClass.className}',
     );
+
+    // An exception can't cross the native callback boundary
+    // (it would be silently converted to `0`): log it.
+    try {
+      return _windowProcImpl(hwnd, uMsg, wParam, lParam, windowClass);
+    } catch (e, s) {
+      _logWindow.severe(
+        'Error processing message: $uMsg (${Win32Constants.wmByID[uMsg]}) ; hwnd: $hwnd',
+        e,
+        s,
+      );
+      return uMsg == WM_CREATE ? -1 : 0;
+    }
+  }
+
+  static int _ctlColor(
+    WindowClassColors? colors,
+    HWND hwnd,
+    int uMsg,
+    WPARAM wParam,
+    LPARAM lParam,
+  ) {
+    final brush = createCtlColorBrush(colors, wParam);
+    // No colors defined: default behavior.
+    return brush != 0 ? brush : DefWindowProc(hwnd, uMsg, wParam, lParam);
+  }
+
+  static int _windowProcImpl(
+    HWND hwnd,
+    int uMsg,
+    WPARAM wParam,
+    LPARAM lParam,
+    WindowClass windowClass,
+  ) {
+    var result = 0;
 
     final windowGlobal = windowClass.lookupWindowGlobally;
     Window? window;
@@ -171,10 +228,8 @@ class WindowClass {
     switch (uMsg) {
       case WM_CREATE:
         {
-          window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
-
-          // Lookup `Window` by `_createId`:
-          if (window == null && lParam != 0) {
+          // Lookup `Window` by `_createId` first (an `HWND` can be reused):
+          if (lParam != 0) {
             window = windowClass.getWindowWithCreateIdPtr(
               hwnd,
               lParam,
@@ -185,9 +240,9 @@ class WindowClass {
             window?._hwnd = hwnd;
           }
 
-          _logWindow.info(() => "WM_CREATE> hwnd: $hwnd ; window: $window");
+          window ??= windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
 
-          final hdc = GetDC(hwnd);
+          _logWindow.info(() => "WM_CREATE> hwnd: $hwnd ; window: $window");
 
           // Window found, build it:
           if (window != null) {
@@ -197,15 +252,19 @@ class WindowClass {
 
             window.setupTitleColor(windowClass.titleColor);
 
-            window.callBuild(hdc: hdc);
+            final hdc = GetDC(hwnd);
+            try {
+              window.callBuild(hdc: hdc);
+            } finally {
+              ReleaseDC(hwnd, hdc);
+            }
+
             result = 0;
           }
           // Missing window, destroy it:
           else {
             result = -1;
           }
-
-          ReleaseDC(hwnd, hdc);
         }
       case WM_PAINT:
         {
@@ -214,10 +273,13 @@ class WindowClass {
             final ps = calloc<PAINTSTRUCT>();
             final hdc = BeginPaint(hwnd, ps);
 
-            window.callRepaint(hdc: hdc);
-
-            EndPaint(hwnd, ps);
-            free(ps);
+            try {
+              window.callRepaint(hdc: hdc);
+            } finally {
+              // Always validate the region (otherwise `WM_PAINT` loops):
+              EndPaint(hwnd, ps);
+              free(ps);
+            }
 
             // Message processed (custom paint):
             result = 0;
@@ -231,33 +293,36 @@ class WindowClass {
           window = windowClass.getWindowWithHWnd(hwnd, global: windowGlobal);
           if (window != null) {
             final hdc = GetDC(hwnd);
-            window.processCommand(hwnd, hdc, wParam, lParam);
-            ReleaseDC(hwnd, hdc);
+            try {
+              window.processCommand(hwnd, hdc, wParam, lParam);
+            } finally {
+              ReleaseDC(hwnd, hdc);
+            }
           }
         }
       case WM_CTLCOLORSTATIC:
         {
-          result = createCtlColorBrush(staticColors, wParam);
+          result = _ctlColor(staticColors, hwnd, uMsg, wParam, lParam);
         }
       case WM_CTLCOLORBTN:
         {
-          result = createCtlColorBrush(buttonColors, wParam);
+          result = _ctlColor(buttonColors, hwnd, uMsg, wParam, lParam);
         }
       case WM_CTLCOLORLISTBOX:
         {
-          result = createCtlColorBrush(listBoxColors, wParam);
+          result = _ctlColor(listBoxColors, hwnd, uMsg, wParam, lParam);
         }
       case WM_CTLCOLOREDIT:
         {
-          result = createCtlColorBrush(editColors, wParam);
+          result = _ctlColor(editColors, hwnd, uMsg, wParam, lParam);
         }
       case WM_CTLCOLORSCROLLBAR:
         {
-          result = createCtlColorBrush(scrollBarColors, wParam);
+          result = _ctlColor(scrollBarColors, hwnd, uMsg, wParam, lParam);
         }
       case WM_CTLCOLORDLG:
         {
-          result = createCtlColorBrush(dialogColors, wParam);
+          result = _ctlColor(dialogColors, hwnd, uMsg, wParam, lParam);
         }
 
       case WM_CLOSE:
@@ -330,7 +395,12 @@ class WindowClass {
       );
       var createStruct = createStructPtr.ref;
 
-      windowName = createStruct.lpszName.toDartString();
+      // `lpszName` is `NULL` for a window without a name:
+      final lpszName = createStruct.lpszName;
+      windowName = lpszName.isNull ? null : lpszName.toDartString();
+
+      // Created without a `createId` (e.g. by external code):
+      if (createStruct.lpCreateParams.isNull) return null;
 
       try {
         createIdPtr = createStruct.lpCreateParams.cast<Uint32>();
@@ -451,15 +521,31 @@ class WindowClass {
       wcRef.hIcon = LoadIcon(null, IDI_APPLICATION).value;
     }
 
+    HBRUSH? hbrBackground;
+
     final bgColor = windowClass.bgColor;
     if (bgColor != null) {
-      wcRef.hbrBackground = CreateSolidBrush(COLORREF(bgColor));
+      wcRef.hbrBackground = hbrBackground = CreateSolidBrush(COLORREF(bgColor));
     }
 
-    var id = RegisterClass(wc).value;
+    final r = RegisterClass(wc);
 
     // `RegisterClass` copies the `WNDCLASS`:
     free(wc);
+
+    final id = r.value;
+
+    // Failed (e.g. `ERROR_CLASS_ALREADY_EXISTS`):
+    if (id == 0) {
+      if (hbrBackground != null) {
+        DeleteObject(HGDIOBJ(hbrBackground));
+      }
+
+      _logWindow.severe(
+        "Can't register `WindowClass`: ${windowClass.className} ; errorCode: ${r.error}",
+      );
+      return false;
+    }
 
     _registeredWindowClasses[windowClass.className] = id;
 
@@ -527,6 +613,9 @@ class WindowMessageLoop {
       }
 
       if (got) {
+        // `PostQuitMessage` (see `Window.quit`): stop the loop.
+        if (msg.ref.message == WM_QUIT) break;
+
         totalMsgCount++;
         noMsgCount = 0;
         ++msgCount;
@@ -580,6 +669,12 @@ class WindowMessageLoop {
       }
 
       if (got) {
+        // Don't swallow a `WM_QUIT`: re-post it for the main message loop.
+        if (msg.ref.message == WM_QUIT) {
+          PostQuitMessage(msg.ref.wParam);
+          break;
+        }
+
         totalMsgCount++;
 
         TranslateMessage(msg);
@@ -613,7 +708,7 @@ extension _DateTimeExtension on DateTime {
 }
 
 /// A base class for [Window] or [Dialog].
-abstract class WindowBase<W extends WindowBase<W>> {
+abstract class WindowBase<W extends WindowBase<W>> implements Finalizable {
   /// The [x] coordinate of this [Window] when created.
   int? x;
 
@@ -643,7 +738,19 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// Returns the window handler ID if [created] or `null`.
   HWND? get hwndIfCreated;
 
-  WindowBase({this.x, this.y, this.width, this.height});
+  WindowBase({this.x, this.y, this.width, this.height}) {
+    // Release the native buffers when this instance is garbage collected
+    // (not on destroy: they may still be read after it).
+    attachNativeFinalizer(dimension, sizeOf<RECT>());
+    attachNativeFinalizer(_rect, sizeOf<RECT>());
+  }
+
+  static final _nativeFinalizer = NativeFinalizer(calloc.nativeFree);
+
+  /// Attaches a [NativeFinalizer] to this instance that releases [pointer]
+  /// (allocated with [calloc]) when this instance is garbage collected.
+  void attachNativeFinalizer(Pointer pointer, int size) =>
+      _nativeFinalizer.attach(this, pointer.cast(), externalSize: size);
 
   /// The `create` ID.
   ///
@@ -856,7 +963,9 @@ abstract class WindowBase<W extends WindowBase<W>> {
       }
 
       if (force || _iconSmall != hIcon) {
-        sendMessage(WM_SETICON, ICON_SMALL2, hIcon.address);
+        // `WM_SETICON` accepts `ICON_SMALL`/`ICON_BIG`
+        // (`ICON_SMALL2` is only valid for `WM_GETICON`):
+        sendMessage(WM_SETICON, ICON_SMALL, hIcon.address);
         _iconSmall = hIcon;
       }
     }
@@ -882,31 +991,31 @@ abstract class WindowBase<W extends WindowBase<W>> {
     ShowWindow(hwnd, SW_SHOWNORMAL);
   }
 
+  // Note: Win32 `ShowWindow` returns the previous visibility state
+  // (not success), so the methods below return the resulting state.
+
   /// Minimizes this [Window].
   /// - Calls Win32 [ShowWindow] [SW_MINIMIZE].
+  /// - Returns [isMinimized].
   bool minimize() {
-    final hwnd = this.hwnd;
-
-    // Returns `true` if the window was previously visible.
-    return ShowWindow(hwnd, SW_MINIMIZE);
+    ShowWindow(hwnd, SW_MINIMIZE);
+    return isMinimized;
   }
 
   /// Maximized this [Window].
   /// - Calls Win32 [ShowWindow] [SW_MAXIMIZE].
+  /// - Returns [isMaximized].
   bool maximize() {
-    final hwnd = this.hwnd;
-
-    var r = ShowWindow(hwnd, SW_MAXIMIZE);
-    return !r;
+    ShowWindow(hwnd, SW_MAXIMIZE);
+    return isMaximized;
   }
 
   /// Restores this [Window].
   /// - Calls Win32 [ShowWindow] [SW_RESTORE].
+  /// - Returns `true` if it's not minimized or maximized after the call.
   bool restore() {
-    final hwnd = this.hwnd;
-
-    var r = ShowWindow(hwnd, SW_RESTORE);
-    return !r;
+    ShowWindow(hwnd, SW_RESTORE);
+    return !isMinimized && !isMaximized;
   }
 
   /// Returns if this [Window] is minimized.
@@ -923,31 +1032,17 @@ abstract class WindowBase<W extends WindowBase<W>> {
   }
 
   /// Closes this [Window].
-  /// - Calls Win32 [CloseWindow].
-  /// - Returns `true` (closed) and calls [CloseWindow] if `processClose` returns `null` (delegates to default behavior).
+  /// - Returns `true` (closed) and calls [destroy] if `processClose` returns `null`
+  ///   (the default `WM_CLOSE` behavior: [DestroyWindow]).
+  ///   Note: Win32 [CloseWindow] minimizes a window, it doesn't close it.
   /// - Returns `false` (minimize) if `processClose` returns `true` (confirm close).
   /// - Returns `null` (do nothing) if `processClose` returns `false` (abort close).
   bool? close() {
-    final hwnd = this.hwnd;
-
     var shouldClose = processClose();
     notifyClose();
 
     if (shouldClose == null) {
-      var r = CloseWindow(hwnd);
-      // retry:
-      if (!r.value) {
-        WindowMessageLoop.consumeQueue();
-        r = CloseWindow(hwnd);
-      }
-
-      if (!r.value) {
-        _logWindow.warning(
-          "Error closing `Window`> errorCode: ${r.error} ; hwnd: $hwnd -> $this",
-        );
-        return false;
-      }
-      return true;
+      return destroy();
     } else if (shouldClose) {
       if (!isMinimized) {
         minimize();
@@ -1018,7 +1113,8 @@ abstract class WindowBase<W extends WindowBase<W>> {
       flags |= cancel ? MB_YESNOCANCEL : MB_YESNO;
     }
 
-    return showDialog(title, text, flags: flags, modal: modal) == IDYES;
+    final r = showDialog(title, text, flags: flags, modal: modal);
+    return r == IDYES || r == IDOK;
   }
 
   /// Shows a dialog.
@@ -1135,21 +1231,24 @@ abstract class WindowBase<W extends WindowBase<W>> {
   /// - Should return a value if this messages was processed, or `null` to send to [DefWindowProc].
   int? processMessage(HWND hwnd, int uMsg, int wParam, int lParam) => null;
 
-  final StreamController<W> _onClose = StreamController();
+  final StreamController<W> _onClose = StreamController.broadcast();
 
   /// On close event (after [WM_CLOSE] message).
   /// - Called by [WindowClass.windowProcDefault].
+  /// - A broadcast [Stream], closed when the window is destroyed.
   Stream<W> get onClose => _onClose.stream;
 
   /// Should be called while processing a [WM_CLOSE] message.
   void notifyClose() {
+    if (_onClose.isClosed) return;
     _onClose.add(this as W);
   }
 
-  final StreamController<W> _onDestroyed = StreamController();
+  final StreamController<W> _onDestroyed = StreamController.broadcast();
 
   /// On destroy event (after [WM_DESTROY] -> [WM_NCDESTROY] messages).
   /// - Called by [WindowClass.windowProcDefault].
+  /// - A broadcast [Stream], closed after the destroy event.
   Stream<W> get onDestroyed => _onDestroyed.stream;
 
   bool _destroyed = false;
@@ -1160,6 +1259,7 @@ abstract class WindowBase<W extends WindowBase<W>> {
 
   /// Should be called while processing a [WM_NCDESTROY] message.
   void notifyDestroyed() {
+    if (_destroyed) return;
     _destroyed = true;
 
     _onDestroyed.add(this as W);
@@ -1171,6 +1271,9 @@ abstract class WindowBase<W extends WindowBase<W>> {
     }
 
     doDestroy();
+
+    _onClose.close();
+    _onDestroyed.close();
   }
 
   /// Perform final destroy operations for this instance.
@@ -1306,7 +1409,16 @@ class Window extends WindowBase<Window> {
   PCWSTR? get windowNameNative {
     final windowName = this.windowName;
     if (windowName == null) return null;
-    return _windowNameNative ??= windowName.toPcwstr();
+
+    var windowNameNative = _windowNameNative;
+    if (windowNameNative == null) {
+      _windowNameNative = windowNameNative = windowName.toPcwstr(
+        allocator: calloc,
+      );
+      attachNativeFinalizer(windowNameNative, (windowName.length + 1) * 2);
+    }
+
+    return windowNameNative;
   }
 
   static int _createIdCount = 0;
@@ -1329,7 +1441,14 @@ class Window extends WindowBase<Window> {
     final createIdPtr = calloc<Uint32>();
     createIdPtr.value = _createId;
 
-    final r = createWindowImpl(createIdPtr);
+    final Win32Result<HWND> r;
+    try {
+      r = createWindowImpl(createIdPtr);
+    } finally {
+      // `WM_CREATE` (which reads `createIdPtr`) is processed synchronously:
+      free(createIdPtr);
+    }
+
     final hwnd = r.value;
 
     if (hwnd.isNull) {
@@ -1418,7 +1537,9 @@ class Window extends WindowBase<Window> {
   }
 
   /// Calls [repaint] resolving necessary parameters.
-  /// - Used by [WindowClass.windowProcDefault].
+  /// - Used by [WindowClass.windowProcDefault] (with the `WM_PAINT` [hdc]).
+  /// - If [hdc] is `null` (a call outside `WM_PAINT`) uses [GetDC].
+  ///   Note: [BeginPaint] is only valid while processing `WM_PAINT`.
   bool callRepaint({HDC? hdc}) {
     ensureLoaded();
 
@@ -1429,11 +1550,12 @@ class Window extends WindowBase<Window> {
     }
 
     if (hdc == null) {
-      final ps = calloc<PAINTSTRUCT>();
-      final hdc = BeginPaint(hwnd, ps);
-
-      _callRepaintImpl(hwnd, hdc);
-      EndPaint(hwnd, ps);
+      final hdc = GetDC(hwnd);
+      try {
+        _callRepaintImpl(hwnd, hdc);
+      } finally {
+        ReleaseDC(hwnd, hdc);
+      }
     } else {
       _callRepaintImpl(hwnd, hdc);
     }
@@ -1556,6 +1678,14 @@ class Window extends WindowBase<Window> {
   @override
   void doDestroy() {
     windowClass.unregisterWindow(this);
+
+    // Child windows are destroyed with their parent, but children of a
+    // predefined class (e.g. `Button`, `RichEdit`) don't receive
+    // `WM_NCDESTROY` in `windowProcDefault`: notify them here
+    // (otherwise they stay registered with a stale `HWND`).
+    for (var child in _children) {
+      child.notifyDestroyed();
+    }
   }
 
   @override

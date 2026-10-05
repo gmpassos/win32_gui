@@ -7,6 +7,7 @@ import 'package:logging/logging.dart' as logging;
 import 'package:win32/win32.dart';
 
 import 'win32_constants.dart';
+import 'win32_constants_extra.dart';
 import 'win32_gui_base.dart';
 
 final _logDialog = logging.Logger('Win32:Dialog');
@@ -61,30 +62,50 @@ class Dialog<R> extends WindowBase<Dialog> {
     final wParam = WPARAM(wParamInt);
     final lParam = LPARAM(lParamInt);
 
-    var result = 0;
-
     _logDialog.info(
       () =>
           'Dialog.dialogProcDefault> hwnd: $hwnd, uMsg: $uMsg (${Win32Constants.wmByID[uMsg]}), wParam: $wParam, lParam: $lParam',
     );
 
+    // An exception can't cross the native callback boundary
+    // (it would be silently converted to `0`): log it.
+    try {
+      return _dialogProcImpl(hwnd, uMsg, wParam, lParam);
+    } catch (e, s) {
+      _logDialog.severe(
+        'Error processing message: $uMsg (${Win32Constants.wmByID[uMsg]}) ; hwnd: $hwnd',
+        e,
+        s,
+      );
+      return FALSE;
+    }
+  }
+
+  /// A [DLGPROC] returns `TRUE` if it processed the message and `FALSE` to
+  /// let the default dialog procedure (`DefDlgProc`) process it.
+  /// - It must NOT call [DefWindowProc].
+  /// - A message result is set with [DWLP_MSGRESULT].
+  /// - Exceptions: `WM_INITDIALOG` and `WM_CTLCOLOR*` return the result directly.
+  static int _dialogProcImpl(
+    HWND hwnd,
+    int uMsg,
+    WPARAM wParam,
+    LPARAM lParam,
+  ) {
     Dialog? dialog;
 
     switch (uMsg) {
       case WM_INITDIALOG:
         {
-          dialog = getDialogWithHWnd(hwnd);
-
-          // Lookup `Dialog` by `_createId`:
-          if (dialog == null && lParam != 0) {
+          // Lookup `Dialog` by `_createId` first (an `HWND` can be reused):
+          if (lParam != 0) {
             dialog = getDialogWithCreateIdPtr(hwnd, lParam, nullHwnd: true);
-
             dialog?._hwnd = hwnd;
           }
 
-          _logDialog.info(() => "WM_INITDIALOG> hwnd: $hwnd ; window: $dialog");
+          dialog ??= getDialogWithHWnd(hwnd);
 
-          final hdc = GetDC(hwnd);
+          _logDialog.info(() => "WM_INITDIALOG> hwnd: $hwnd ; window: $dialog");
 
           if (dialog != null) {
             if (dialog.useDarkMode) {
@@ -93,103 +114,87 @@ class Dialog<R> extends WindowBase<Dialog> {
 
             dialog.setupTitleColor(dialog.titleColor);
 
-            dialog.callBuild(hdc: hdc);
+            final hdc = GetDC(hwnd);
+            try {
+              dialog.callBuild(hdc: hdc);
+            } finally {
+              ReleaseDC(hwnd, hdc);
+            }
           }
 
-          ReleaseDC(hwnd, hdc);
-
-          result = TRUE;
+          // Set the default keyboard focus:
+          return TRUE;
         }
       case WM_COMMAND:
         {
           dialog = getDialogWithHWnd(hwnd);
+          if (dialog == null) return FALSE;
 
-          if (dialog != null) {
-            final hdc = GetDC(hwnd);
+          final hdc = GetDC(hwnd);
+          try {
             dialog.processCommand(hwnd, hdc, wParam, lParam);
+          } finally {
             ReleaseDC(hwnd, hdc);
-
-            result = TRUE;
           }
 
-          result = FALSE;
+          return TRUE;
         }
 
       case WM_CLOSE:
         {
           dialog = getDialogWithHWnd(hwnd);
-          if (dialog != null) {
-            var shouldClose = dialog.processClose();
-            dialog.notifyClose();
+          if (dialog == null) return FALSE;
 
-            if (shouldClose == null) {
-              result = DefWindowProc(hwnd, uMsg, wParam, lParam);
-            } else if (shouldClose) {
-              dialog.destroy();
-              result = 0;
-            } else {
-              result = 0;
-            }
+          var shouldClose = dialog.processClose();
+          dialog.notifyClose();
+
+          // `null` (default behavior) or `true`: close.
+          // `false`: abort the close.
+          if (shouldClose ?? true) {
+            dialog.destroy();
           }
+
+          return TRUE;
         }
 
       case WM_DESTROY:
         {
-          dialog = getDialogWithHWnd(hwnd);
-          if (dialog != null) {
-            dialog.processDestroy();
-            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
-          }
+          getDialogWithHWnd(hwnd)?.processDestroy();
+          return FALSE;
         }
       case WM_NCDESTROY:
         {
-          dialog = getDialogWithHWnd(hwnd);
-          dialog?.notifyDestroyed();
+          getDialogWithHWnd(hwnd)?.notifyDestroyed();
+          return FALSE;
         }
 
       case WM_CTLCOLORSTATIC:
-        {
-          result = WindowClass.createCtlColorBrush(staticColors, wParam);
-        }
+        return WindowClass.createCtlColorBrush(staticColors, wParam);
       case WM_CTLCOLORBTN:
-        {
-          result = WindowClass.createCtlColorBrush(buttonColors, wParam);
-        }
+        return WindowClass.createCtlColorBrush(buttonColors, wParam);
       case WM_CTLCOLORLISTBOX:
-        {
-          result = WindowClass.createCtlColorBrush(listBoxColors, wParam);
-        }
+        return WindowClass.createCtlColorBrush(listBoxColors, wParam);
       case WM_CTLCOLOREDIT:
-        {
-          result = WindowClass.createCtlColorBrush(editColors, wParam);
-        }
+        return WindowClass.createCtlColorBrush(editColors, wParam);
       case WM_CTLCOLORSCROLLBAR:
-        {
-          result = WindowClass.createCtlColorBrush(scrollBarColors, wParam);
-        }
+        return WindowClass.createCtlColorBrush(scrollBarColors, wParam);
       case WM_CTLCOLORDLG:
-        {
-          result = WindowClass.createCtlColorBrush(dialogColors, wParam);
-        }
+        return WindowClass.createCtlColorBrush(dialogColors, wParam);
 
       default:
         {
-          int? processed;
-
           dialog = getDialogWithHWnd(hwnd);
-          if (dialog != null) {
-            processed = dialog.processMessage(hwnd, uMsg, wParam, lParam);
-          }
+          final processed = dialog?.processMessage(hwnd, uMsg, wParam, lParam);
+          if (processed == null) return FALSE;
 
-          if (processed != null) {
-            result = processed;
-          } else {
-            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
-          }
+          SetWindowLongPtr(
+            hwnd,
+            WINDOW_LONG_PTR_INDEX(DWLP_MSGRESULT),
+            processed,
+          );
+          return TRUE;
         }
     }
-
-    return result;
   }
 
   static final Set<Dialog> _dialogs = {};
@@ -320,8 +325,6 @@ class Dialog<R> extends WindowBase<Dialog> {
     }
 
     registerDialog(this);
-
-    setupTimeout();
   }
 
   Timer? _timeoutTimer;
@@ -330,11 +333,17 @@ class Dialog<R> extends WindowBase<Dialog> {
   Timer? get timeoutTimer => _timeoutTimer;
 
   /// Setup [timeoutTimer].
+  /// - Called by [create], after the [Dialog] is created.
   void setupTimeout() {
     final timeout = this.timeout;
-    if (timeout == null) return;
+    if (timeout == null || _timeoutTimer != null || _resultSet) return;
 
     _timeoutTimer = Timer(timeout, _notifyTimeout);
+  }
+
+  void _cancelTimeout() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
   }
 
   bool _timeoutTriggered = false;
@@ -342,19 +351,24 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// Returns `true` if [timeout] was triggered.
   bool get timeoutTriggered => _timeoutTriggered;
 
-  final StreamController<Dialog> _onTimeout = StreamController();
+  final StreamController<Dialog> _onTimeout = StreamController.broadcast();
 
   /// On [timeout] triggered.
   Stream<Dialog> get onTimeout => _onTimeout.stream;
 
   void _notifyTimeout() {
-    if (!_resultSet) {
+    _timeoutTimer = null;
+
+    if (!_resultSet && !isDestroyed) {
       _timeoutTriggered = true;
-      finish();
 
       _logDialog.info(() => "Dialog$_hwnd timeout!");
 
+      // Emit before `finish()`: it may destroy the dialog, closing `_onTimeout`.
+      // (Broadcast events are delivered asynchronously, after `finish()`.)
       _onTimeout.add(this);
+
+      finish();
     }
   }
 
@@ -380,7 +394,16 @@ class Dialog<R> extends WindowBase<Dialog> {
 
     final dialogTemplatePtr = createDialogTemplate();
 
-    final r = createDialogImpl(createIdPtr, dialogTemplatePtr);
+    final Win32Result<HWND> r;
+    try {
+      r = createDialogImpl(createIdPtr, dialogTemplatePtr);
+    } finally {
+      // `WM_INITDIALOG` (which reads `createIdPtr`) is processed
+      // synchronously, and the template isn't used after the call returns:
+      free(createIdPtr);
+      free(dialogTemplatePtr);
+    }
+
     final hwnd = r.value;
 
     if (hwnd.isNull) {
@@ -388,6 +411,9 @@ class Dialog<R> extends WindowBase<Dialog> {
     }
 
     _hwnd = hwnd;
+
+    setupTimeout();
+
     return hwnd;
   }
 
@@ -405,25 +431,50 @@ class Dialog<R> extends WindowBase<Dialog> {
     LPARAM(createIdPtr.address),
   );
 
-  /// Creates the [DLGTEMPLATE] used by [createDialogImpl].
-  Pointer<DLGTEMPLATE> createDialogTemplate() {
-    var szBasic = sizeOf<DLGTEMPLATE>();
-    var szItems = (sizeOf<DLGITEMTEMPLATE>() + 8) * items.length;
+  /// Default [Dialog] width (dialog units) if [width] is not defined.
+  static const defaultWidth = 200;
 
-    var sz = szBasic + szItems + 128;
+  /// Default [Dialog] height (dialog units) if [height] is not defined.
+  static const defaultHeight = 100;
+
+  /// Returns the size in WORDs (an upper bound) of the template
+  /// written by [createDialogTemplate].
+  int computeDialogTemplateSize() {
+    // `DLGTEMPLATE` (9) + menu (1) + class (1) + title + alignment (1):
+    var size = 9 + 1 + 1 + ((title?.length ?? 0) + 1) + 1;
+
+    final fontName = this.fontName;
+    if (fontName != null && fontName.isNotEmpty) {
+      // Font size (1) + font name:
+      size += 1 + (fontName.length + 1);
+    }
+
+    for (var item in items) {
+      size += item.computeTemplateSize();
+    }
+
+    return size;
+  }
+
+  /// Creates the [DLGTEMPLATE] used by [createDialogImpl].
+  /// - The returned pointer should be released with [free].
+  Pointer<DLGTEMPLATE> createDialogTemplate() {
+    final sz = computeDialogTemplateSize();
 
     final Pointer<Uint16> templatePtr = calloc<Uint16>(sz);
 
     var idx = 0;
 
+    // Note: `DLGTEMPLATE` coordinates are 16-bit dialog units, so
+    // `CW_USEDEFAULT` can't be used.
     idx += (templatePtr + idx).cast<DLGTEMPLATE>().setDialog(
       style: style,
       title: title ?? '',
       cdit: items.length,
-      x: x ?? CW_USEDEFAULT,
-      y: y ?? CW_USEDEFAULT,
-      cx: width ?? CW_USEDEFAULT,
-      cy: height ?? CW_USEDEFAULT,
+      x: x ?? 0,
+      y: y ?? 0,
+      cx: width ?? defaultWidth,
+      cy: height ?? defaultHeight,
       fontName: fontName ?? '',
       fontSize: fontSize ?? 0,
     );
@@ -444,6 +495,13 @@ class Dialog<R> extends WindowBase<Dialog> {
       );
     }
 
+    if (idx > sz) {
+      // Should never happen (`computeDialogTemplateSize` is an upper bound):
+      throw StateError(
+        "Dialog template overflow: written $idx > allocated $sz WORDs",
+      );
+    }
+
     return templatePtr.cast();
   }
 
@@ -457,7 +515,16 @@ class Dialog<R> extends WindowBase<Dialog> {
   /// The result of the dialog.
   R? get result => _result;
 
+  /// Sets the [result] (only once: the first result wins).
+  /// - Completes [waitResult], cancels the [timeout] and calls [doClose].
   set result(R? result) {
+    if (_resultSet) {
+      _logDialog.info(
+        () => "Dialog#$_hwnd result already set: $_result (ignoring: $result)",
+      );
+      return;
+    }
+
     _result = result;
     _notifyResult();
   }
@@ -465,40 +532,47 @@ class Dialog<R> extends WindowBase<Dialog> {
   void _notifyResult() {
     _resultSet = true;
 
-    var waitingResult = _waitingResult;
-    if (waitingResult != null && !waitingResult.isCompleted) {
-      waitingResult.complete(true);
-      _waitingResult = null;
-    }
+    _completeWaitingResult(true);
 
     _logDialog.info(() => "Dialog#$_hwnd result: $result");
 
-    _timeoutTimer?.cancel();
-    _timeoutTimer = null;
+    _cancelTimeout();
 
     doClose();
   }
 
+  void _completeWaitingResult(bool resultSet) {
+    var waitingResult = _waitingResult;
+    if (waitingResult != null && !waitingResult.isCompleted) {
+      waitingResult.complete(resultSet);
+    }
+    _waitingResult = null;
+  }
+
   /// The close procedure. Called when [result] is set.
-  /// - Default: call [destroy].
+  /// - Default: call [destroy] (if [created] and not [isDestroyed]).
   void doClose() {
-    destroy();
+    if (created && !isDestroyed) {
+      destroy();
+    }
   }
 
   Completer<bool>? _waitingResult;
 
   /// Waits for the [result].
-  Future<bool> waitResult({Duration? timeout}) async {
+  /// - Returns `true` if the [result] was set.
+  /// - Returns `false` on [timeout] (for this caller) or if the [Dialog] was
+  ///   destroyed without a [result].
+  Future<bool> waitResult({Duration? timeout}) {
     if (_resultSet) {
-      return true;
+      return Future.value(true);
     }
 
-    var waitingResult = _waitingResult;
-    if (waitingResult != null) {
-      return waitingResult.future;
+    if (isDestroyed) {
+      return Future.value(false);
     }
 
-    waitingResult = _waitingResult = Completer<bool>();
+    var waitingResult = _waitingResult ??= Completer<bool>();
 
     var future = waitingResult.future;
 
@@ -553,11 +627,9 @@ class Dialog<R> extends WindowBase<Dialog> {
   }
 
   bool _setResultDynamicImpl(dynamic result) {
-    try {
-      this.result = result;
-      return true;
-    } catch (_) {}
-    return false;
+    if (result is! R) return false;
+    this.result = result;
+    return true;
   }
 
   /// Finishes this dialog setting its [result].
@@ -566,8 +638,17 @@ class Dialog<R> extends WindowBase<Dialog> {
     assert(isResultSet);
   }
 
+  /// Returns `true` if a `WM_COMMAND` [wParam] is a button click
+  /// (`BN_CLICKED`), a menu item or an accelerator (keyboard `IDOK`/`IDCANCEL`).
+  static bool isClickCommand(int wParam) {
+    final notificationCode = (wParam >> 16) & 0xFFFF;
+    return notificationCode == BN_CLICKED || notificationCode == 1;
+  }
+
   /// Processes a [Dialog] command, usually a button click.
-  /// - By default calls [onCommand] if defined, otherwise [setResultDynamic].
+  /// - By default calls [onCommand] if defined, otherwise [setResultDynamic]
+  ///   for click commands (see [isClickCommand]). Other notifications
+  ///   (e.g. `EN_CHANGE`, `EN_SETFOCUS`) don't set the [result].
   @override
   void processCommand(HWND hwnd, HDC hdc, int wParam, int lParam) {
     _logDialog.info(
@@ -579,7 +660,7 @@ class Dialog<R> extends WindowBase<Dialog> {
 
     if (onCommand != null) {
       onCommand(wParam, lParam);
-    } else {
+    } else if (isClickCommand(wParam)) {
       setResultDynamic([wParam, lParam]);
     }
   }
@@ -590,6 +671,13 @@ class Dialog<R> extends WindowBase<Dialog> {
   @override
   void doDestroy() {
     unregisterDialog(this);
+
+    _cancelTimeout();
+
+    // Destroyed without a result (e.g. closed by the user):
+    _completeWaitingResult(false);
+
+    _onTimeout.close();
   }
 
   @override
@@ -645,6 +733,8 @@ class DialogItem {
     width: width,
     height: height,
     id: id,
+    // The predefined `button` class (ordinal `0x0080`):
+    windowSystemClass: DLG_CLASS_BUTTON,
     text: text,
   );
 
@@ -669,6 +759,27 @@ class DialogItem {
     windowClass: windowClass,
     text: text,
   );
+
+  /// Returns the size in WORDs (an upper bound) of this item in a
+  /// [DLGTEMPLATE] (see [Dialog.createDialogTemplate]).
+  int computeTemplateSize() {
+    // `DLGITEMTEMPLATE` (9):
+    var size = 9;
+
+    // Class array: name or `0xFFFF` + ordinal (2):
+    size += windowClass.isNotEmpty ? windowClass.length + 1 : 2;
+
+    // Text (title array):
+    size += text.length + 1;
+
+    // Creation data: size WORD (1) + bytes:
+    size += 1 + (creationDataBytes.length + 1) ~/ 2;
+
+    // DWORD alignment (1):
+    size += 1;
+
+    return size;
+  }
 
   @override
   bool operator ==(Object other) =>

@@ -121,6 +121,13 @@ abstract class Win32Constants {
     0x0127: 'WM_CHANGEUISTATE',
     0x0128: 'WM_UPDATEUISTATE',
     0x0129: 'WM_QUERYUISTATE',
+    0x0132: 'WM_CTLCOLORMSGBOX',
+    0x0133: 'WM_CTLCOLOREDIT',
+    0x0134: 'WM_CTLCOLORLISTBOX',
+    0x0135: 'WM_CTLCOLORBTN',
+    0x0136: 'WM_CTLCOLORDLG',
+    0x0137: 'WM_CTLCOLORSCROLLBAR',
+    0x0138: 'WM_CTLCOLORSTATIC',
     0x0200: 'WM_MOUSEMOVE',
     0x0201: 'WM_LBUTTONDOWN',
     0x0202: 'WM_LBUTTONUP',
@@ -161,11 +168,11 @@ abstract class Win32Constants {
     0x0311: 'WM_PALETTECHANGED',
     0x0312: 'WM_HOTKEY',
     0x0400: 'WM_USER',
-    0x40000000: 'CFM_COLOR',
-    0x0004: 'SCF_ALL',
   });
 
+  // Non `WM_*` constants (not message IDs):
   static final Map<String, int> _wmByNameExtra = UnmodifiableMapView({
+    'CFM_COLOR': 0x40000000,
     'CFE_BOLD': 1,
     'CFE_ITALIC': 2,
     'CFE_UNDERLINE': 4,
@@ -189,8 +196,4 @@ abstract class Win32Constants {
 
   static String buildConstants() =>
       wmByName.entries.map((e) => 'const ${e.key} = ${e.value};\n').join();
-}
-
-void main() {
-  print(Win32Constants.buildConstants());
 }

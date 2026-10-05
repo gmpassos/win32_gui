@@ -45,6 +45,57 @@
     `getSystemDefaultFonts` on error.
   - Error codes come from `Win32Result.error` (captured atomically) instead of a later `GetLastError()` call.
 
+- Fixes (review):
+  - `Dialog.dialogProcDefault`: follows the `DLGPROC` contract (returns `TRUE`/`FALSE`, results via
+    `DWLP_MSGRESULT`) instead of calling `DefWindowProc` (broke caption drag/close, `WM_NCHITTEST`,
+    `WM_QUERYENDSESSION`, and processed messages twice). `WM_CLOSE` destroys the dialog.
+  - `Dialog.createDialogTemplate`: the buffer is sized from the actual strings/items
+    (`computeDialogTemplateSize`, `DialogItem.computeTemplateSize`); it used to overflow the heap with
+    several items or long texts. Null `x`/`y`/`width`/`height` default to `0`/`0`/`defaultWidth`/`defaultHeight`
+    (`CW_USEDEFAULT` was truncated to a 16-bit `0`, a zero-sized dialog).
+  - `DialogItem.button`: uses the predefined `button` class ordinal (`0x0080`); it was `0` (invalid).
+  - `Dialog` lifecycle:
+    - The `timeout` timer starts on `create()` (was the constructor).
+    - The `result` is set only once (the first result wins); `doClose` only destroys a created, live dialog.
+    - Destroyed without a result (e.g. closed by the user): cancels the timer and completes `waitResult` with `false`
+      (it used to hang).
+    - `waitResult(timeout:)` applies the timeout per caller.
+    - `setResultDynamic` checks the type instead of catching any error.
+    - The default `processCommand` only sets the result for clicks (`isClickCommand`), not for
+      notifications like `EN_SETFOCUS`/`EN_CHANGE`.
+  - `WindowClass.windowProcDefault` / `Dialog.dialogProcDefault`: exceptions are caught and logged
+    (they were silently converted to `0` at the native callback boundary); `EndPaint`/`ReleaseDC` in `finally`.
+  - `WM_CREATE`: no longer crashes (null dereference) for a window without a name (`lpszName == NULL`) or created
+    without `lpCreateParams`; looks up the `Window` by `createId` first (an `HWND` can be reused).
+  - `WM_CTLCOLOR*`: uses a cached brush (`WindowClassColors.brush`, released by `dispose`) instead of creating a
+    GDI brush per message (GDI object leak). Without colors, delegates to `DefWindowProc`.
+  - `WindowMessageLoop.runLoopAsync` stops on `WM_QUIT`; `consumeQueue` re-posts a `WM_QUIT` instead of swallowing it.
+  - `close()` with the default behavior calls `destroy()` (Win32 `CloseWindow` minimizes a window).
+  - `minimize`/`maximize`/`restore`: return the resulting state (`ShowWindow` returns the previous visibility).
+  - `showConfirmationDialog(okCancel: true)`: returns `true` for `IDOK` (always returned `false`).
+  - `setIcon`: `WM_SETICON` with `ICON_SMALL` (`ICON_SMALL2` is only valid for `WM_GETICON`).
+  - `RegisterClass` failures are detected and logged (were reported as success).
+  - Children of a destroyed `Window` (e.g. `Button`, `RichEdit`) are notified and unregistered
+    (they stayed registered with a stale `HWND`).
+  - `onClose`/`onDestroyed`/`onTimeout` are broadcast streams, closed when destroyed.
+  - `callRepaint()` outside `WM_PAINT` uses `GetDC`/`ReleaseDC` (was `BeginPaint` with a leaked `PAINTSTRUCT`).
+  - `RichEdit.getCharFormat` sets `cbSize` (required by `EM_GETCHARFORMAT`); `appendText` frees its `CHARFORMAT`.
+  - Native memory: `createIdPtr` and the dialog template are freed after creation; `dimension`, the rect
+    buffer and `windowNameNative` are released by a `NativeFinalizer` (`WindowBase` is `Finalizable`).
+  - `Win32Thread.closeThread` (the caller owns the `createThread` handle).
+  - Logging: `logAllTo` works (was never called); `LoggerHandler.parent` returns the parent handler;
+    `logErrorTo` of a specific logger is used; long logger/isolate names are truncated.
+  - `Win32Constants`: removed non-message entries from `wmByID` (`CFM_COLOR`, `SCF_ALL`), added `WM_CTLCOLOR*`,
+    removed a top-level `main()` exported by the library.
+- New constants: `DWLP_MSGRESULT`, `BN_CLICKED`, `DLG_CLASS_BUTTON`.
+
+- Tests:
+  - `test/win32_gui_logic_test.dart`: pure Dart logic (runs on any OS).
+  - `test/win32_gui_integration_test.dart`: Windows integration tests for the fixes above.
+  - `dart_test.yaml`: `concurrency: 1` (Win32 window classes/message queues are per process/thread).
+
+- CI: `codecov/codecov-action@v5`; a Codecov upload error doesn't fail the build.
+
 - sdk: '>=3.10.0 <4.0.0'
 
 - ffi: ^2.2.0

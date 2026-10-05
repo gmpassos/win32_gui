@@ -43,6 +43,9 @@ void main() {
       );
 
       expect(tExited, isTrue);
+
+      // The caller owns the thread handle:
+      expect(Win32Thread.closeThread(t.hThread), isTrue);
     });
   });
 }
