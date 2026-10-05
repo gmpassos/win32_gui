@@ -26,14 +26,14 @@ void main() {
       expect(nativeFunctionPtr.address, isNot(equals(0)));
 
       var t = Win32Thread.createThread(
-        threadFunction:
-            nativeFunctionPtr.cast<NativeFunction<LPTHREAD_START_ROUTINE>>(),
+        threadFunction: nativeFunctionPtr
+            .cast<NativeFunction<LPTHREAD_START_ROUTINE>>(),
         threadParam: nullptr,
       );
 
       expect(t, isNotNull);
 
-      expect(t!.hThread, isNot(equals(0)));
+      expect(t!.hThread.isNull, isFalse);
       expect(t.threadID, isNot(equals(0)));
 
       // Wait the Thread to exit:

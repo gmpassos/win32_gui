@@ -1,3 +1,61 @@
+## 2.0.0
+
+- Migrated to `win32` 6.x (breaking: `win32_gui` re-exports `package:win32`).
+  - See the `win32` [migration guide](https://win32.pub/docs/migration/5xx-to-6xx).
+
+- Breaking changes (typed handles):
+  - `WindowBase`:
+    - `hwnd`/`hwndIfCreated`: `HWND` (was `int`).
+    - `create()`: returns `Future<HWND>`.
+    - `build`, `repaint`: `(HWND hwnd, HDC hdc)`.
+    - `processCommand`: `(HWND hwnd, HDC hdc, int wParam, int lParam)`.
+    - `processMessage`: `(HWND hwnd, int uMsg, int wParam, int lParam)`.
+    - `callBuild`/`callRepaint`: `{HDC? hdc}`.
+    - `fillRect`, `drawText`, `drawBG`: `HDC hdc`.
+    - `drawImage`: `(HDC hdc, HBITMAP hBitmap, ...)`.
+  - `Window`:
+    - `loadImage`/`loadImageCached`: return `HBITMAP`; `getBitmapDimension(HBITMAP)`.
+    - `loadIcon`/`loadIconCached`: return `HICON`.
+    - `createWindowImpl`: returns `Win32Result<HWND>`.
+    - `windowNameNative`: `PCWSTR?` (`null` when `windowName` is `null`).
+  - `WindowClass`:
+    - `windowProcDefault` and `WindowProcFunction`: native `WNDPROC` signature
+      `(Pointer hwnd, int uMsg, int wParam, int lParam)` (required by `Pointer.fromFunction`).
+    - `getWindowWithHWnd`, `getWindowWithCreateId`, `getWindowWithCreateIdPtr`: `HWND`.
+    - `classNameNative`: `PCWSTR`.
+    - New `createCtlColorBrush` (handles `WM_CTLCOLOR*`).
+  - `WindowClassColors.createSolidBrush`: `HBRUSH createSolidBrush(HDC hdc)`.
+  - `Dialog`:
+    - `dialogProcDefault`: native `DLGPROC` signature `(Pointer hwnd, int uMsg, int wParam, int lParam)`.
+    - `getDialogWithHWnd`, `getDialogWithCreateId`, `getDialogWithCreateIdPtr`: `HWND`.
+    - `createDialogImpl`: returns `Win32Result<HWND>`.
+  - `RichEdit.setTextColor`: `(HDC hdc, int color)`.
+  - `Win32Thread`: `createThread` returns `hThread` as `HANDLE`; `waitThread(HANDLE)`.
+  - Style parameters with combined-flag defaults are now nullable (same defaults), since `win32` 6.x flags
+    can't be combined in `const` expressions: `Dialog(style:)`, `DialogItem.button(style:)`,
+    `DialogItem.text(style:)`, `Button(windowStyles:)`.
+  - Colors, styles, `wParam`/`lParam` and `hMenu` remain `int` (the `win32` 6.x enum/param types implement `int`).
+
+- Fixes:
+  - `setupDarkMode`, `setupTitleColor`, `setWindowRoundedCorners`: catch `WindowsException`
+    (`DwmSetWindowAttribute` now throws; caption color and rounded corners require Windows 11).
+  - `drawImage`: release the memory DC with `DeleteDC` (was `DeleteObject`).
+  - Fixed native memory leaks: `WNDCLASS` in `register()`, `getWindowText`, `setWindowText`,
+    `RichEdit.replaceSel` (per `appendText`), `Win32Thread.createThread` thread ID,
+    `getSystemDefaultFonts` on error.
+  - Error codes come from `Win32Result.error` (captured atomically) instead of a later `GetLastError()` call.
+
+- sdk: '>=3.10.0 <4.0.0'
+
+- ffi: ^2.2.0
+- win32: ^6.4.0
+- collection: ^1.19.1
+
+- lints: ^6.1.0
+- test: ^1.31.1
+- dependency_validator: ^5.1.0
+- coverage: ^1.15.1
+
 ## 1.2.0
 
 - sdk: '>=3.7.0 <4.0.0'

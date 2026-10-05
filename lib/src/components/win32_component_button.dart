@@ -12,11 +12,12 @@ class Button extends ChildWindow {
   /// The command of this button when clicked.
   final void Function(int wParam, int lParam)? onCommand;
 
+  /// - [windowStyles] defaults to `WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON`.
   Button({
     super.id,
     super.parent,
     required String label,
-    super.windowStyles = WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+    int? windowStyles,
     int super.x = CW_USEDEFAULT,
     int super.y = CW_USEDEFAULT,
     int super.width = CW_USEDEFAULT,
@@ -24,12 +25,18 @@ class Button extends ChildWindow {
     super.bgColor,
     super.defaultRepaint = true,
     this.onCommand,
-  }) : super(windowClass: buttonWindowClass, windowName: label);
+  }) : super(
+         windowClass: buttonWindowClass,
+         windowName: label,
+         windowStyles:
+             windowStyles ??
+             (WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON),
+       );
 
   /// Calls [onCommand].
   /// See [Window.processCommand].
   @override
-  void processCommand(int hwnd, int hdc, int wParam, int lParam) {
+  void processCommand(HWND hwnd, HDC hdc, int wParam, int lParam) {
     _log.info(
       '[hwnd: $hwnd, hdc: $hdc] processCommand> wParam: $wParam, lParam: $lParam',
     );
