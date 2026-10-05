@@ -104,8 +104,7 @@ class LoggerHandler {
     var l = logger.parent;
     if (l == null) return null;
 
-    var handler = _loggerHandlers[this];
-    return handler;
+    return l.handler;
   }
 
   /// The [logging.Logger] name.
@@ -121,18 +120,20 @@ class LoggerHandler {
     var maxList = _maxKeys[key];
     var sLength = s.length;
 
+    int max;
     if (maxList == null) {
-      var max = sLength;
+      max = sLength;
       _maxKeys[key] = QueueList.from([sLength]);
-      return max;
     } else {
       maxList.addLast(sLength);
       while (maxList.length > 20) {
         maxList.removeFirst();
       }
-      var max = _listMax(maxList);
-      return max;
+      max = _listMax(maxList);
     }
+
+    // Values longer than `limit` are truncated (see `truncateString`):
+    return max > limit ? limit : max;
   }
 
   static int _listMax(List<int> l) {
@@ -149,8 +150,12 @@ class LoggerHandler {
     var level = msg.level;
     var logMsg = buildMessageText(msg);
 
-    if (level == logging.Level.SEVERE) {
-      logErrorMessage(level, logMsg);
+    logAllMessage(level, logMsg);
+
+    if (level >= logging.Level.SEVERE) {
+      // Use the handler of the record's logger (falls back to its parents and root):
+      var handler = logging.Logger(msg.loggerName).handler;
+      handler.logErrorMessage(level, logMsg);
     }
 
     if (_logToConsole) {

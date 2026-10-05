@@ -180,8 +180,11 @@ class RichEdit extends ChildWindow {
 
   /// Gets the `CHARFORMAT` of this [RichEdit].
   /// - Calls [sendMessage] [EM_GETCHARFORMAT].
+  /// - The caller owns the returned pointer (release it with [free]).
   Pointer<CHARFORMAT> getCharFormat([int range = SCF_SELECTION]) {
     final cf = calloc<CHARFORMAT>();
+    // Required by `EM_GETCHARFORMAT`:
+    cf.ref.cbSize = sizeOf<CHARFORMAT>();
     sendMessage(EM_GETCHARFORMAT, range, cf.address);
     logInfo('getCharFormat', () => 'range: $range');
     return cf;
@@ -275,6 +278,7 @@ class RichEdit extends ChildWindow {
     }
 
     setCharFormat(cf);
+    free(cf);
 
     setCursorToBottom();
     replaceSel(text);

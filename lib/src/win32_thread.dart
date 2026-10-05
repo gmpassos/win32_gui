@@ -11,6 +11,8 @@ class Win32Thread {
   /// - [threadFunction] is the entrypoint function of the Thread. Note that this can't
   ///   be a Dart function, since it can't be called from a thread external to its `Isolate`.
   /// - [threadParam] is an optional parameter to be passed to [threadFunction].
+  /// - The caller owns the returned `hThread`: release it with [closeThread]
+  ///   (closing the handle doesn't terminate the thread).
   static ({int threadID, HANDLE hThread})? createThread({
     required Pointer<NativeFunction<LPTHREAD_START_ROUTINE>> threadFunction,
     Pointer<NativeType>? threadParam,
@@ -39,6 +41,10 @@ class Win32Thread {
       free(threadIdPtr);
     }
   }
+
+  /// Closes a thread handle returned by [createThread].
+  /// - Calls Win32 [CloseHandle].
+  static bool closeThread(HANDLE hThread) => CloseHandle(hThread).value;
 
   static const WAIT_OBJECT_0 = 0x00000000;
   static const WAIT_TIMEOUT = 0x00000102;
